@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mskn/seller_profile.dart';
 
 class SellerRegister extends StatefulWidget {
   const SellerRegister({super.key});
@@ -9,7 +11,8 @@ class SellerRegister extends StatefulWidget {
   State<SellerRegister> createState() => _SellerRegisterState();
 }
 
-class _SellerRegisterState extends State<SellerRegister> with TickerProviderStateMixin {
+class _SellerRegisterState extends State<SellerRegister>
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -21,7 +24,7 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -29,7 +32,7 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -37,7 +40,7 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _animationController.forward();
   }
 
@@ -46,7 +49,7 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
     _animationController.dispose();
     super.dispose();
   }
-  
+
   TextEditingController full_name = TextEditingController();
   TextEditingController email = TextEditingController();
   TextEditingController phone = TextEditingController();
@@ -54,7 +57,7 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
   bool isLoading = false;
   GlobalKey<FormState> formstate = GlobalKey<FormState>();
   TextEditingController confirm_password = TextEditingController();
-  
+
   TextEditingController license_number = TextEditingController();
   TextEditingController licence_created = TextEditingController();
   TextEditingController licence_expired = TextEditingController();
@@ -64,13 +67,13 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
     final screenSize = MediaQuery.of(context).size;
     final isSmallScreen = screenSize.width < 400;
     final isMediumScreen = screenSize.width >= 400 && screenSize.width < 600;
-    
+
     final horizontalPadding = isSmallScreen ? 16.0 : 24.0;
     final verticalSpacing = isSmallScreen ? 16.0 : 20.0;
-    
+
     final headingSize = isSmallScreen ? 24.0 : (isMediumScreen ? 28.0 : 30.0);
     final subheadingSize = isSmallScreen ? 14.0 : 16.0;
-    
+
     return Scaffold(
       body: Container(
         color: Colors.white,
@@ -82,7 +85,9 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
               child: Stack(
                 children: [
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isSmallScreen ? 16.0 : 24.0),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: isSmallScreen ? 16.0 : 24.0),
                     child: SingleChildScrollView(
                       child: Padding(
                         padding: EdgeInsets.only(bottom: 80),
@@ -97,11 +102,14 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                                   decoration: BoxDecoration(
                                     color: Colors.grey[100],
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey[200]!),
+                                    border:
+                                        Border.all(color: Colors.grey[200]!),
                                   ),
                                   child: IconButton(
-                                    icon: Icon(Icons.arrow_back_ios, color: Colors.grey[700], size: 18),
-                                    onPressed: () => Navigator.of(context).pop(),
+                                    icon: Icon(Icons.arrow_back_ios,
+                                        color: Colors.grey[700], size: 18),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
                                   ),
                                 ),
                                 Expanded(
@@ -118,9 +126,9 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                                 SizedBox(width: 44),
                               ],
                             ),
-                            
+
                             SizedBox(height: verticalSpacing * 1.5),
-                            
+
                             // Main content
                             Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -129,25 +137,22 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                                 Text(
                                   'انشاء حساب جديد',
                                   style: TextStyle(
-                                    fontSize: headingSize, 
+                                    fontSize: headingSize,
                                     color: Color(0xFF6B7280),
                                     fontWeight: FontWeight.bold,
                                   ),
                                   textAlign: TextAlign.left,
                                 ),
-                                
                                 Text(
                                   'ادخل بياناتك لانشاء حسابك',
                                   style: TextStyle(
-                                    fontSize: subheadingSize, 
+                                    fontSize: subheadingSize,
                                     color: Color(0xFF6B7280),
                                     fontWeight: FontWeight.w300,
                                   ),
                                   textAlign: TextAlign.left,
                                 ),
-
                                 SizedBox(height: verticalSpacing * 2),
-
                                 Form(
                                   key: formstate,
                                   child: Column(
@@ -157,43 +162,44 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                                         label: 'الاسم الكامل',
                                         hint: 'محمد احمد',
                                         validator: (val) {
-                                          if(val == '') {
+                                          if (val == '') {
                                             return 'الرجاء ادخال الاسم الكامل';
                                           }
                                           return null;
                                         },
                                         keyboardType: TextInputType.name,
                                       ),
-                                      
+
                                       SizedBox(height: verticalSpacing),
-                                      
+
                                       buildInputField(
                                         controller: email,
                                         label: 'البريد الالكتروني',
                                         hint: 'example@email.com',
                                         validator: (val) {
-                                          if(val == '') {
+                                          if (val == '') {
                                             return 'الرجاء ادخال البريد الالكتروني';
                                           }
                                           return null;
                                         },
-                                        keyboardType: TextInputType.emailAddress,
+                                        keyboardType:
+                                            TextInputType.emailAddress,
                                       ),
-                                      
+
                                       SizedBox(height: verticalSpacing),
-                                         buildInputField(
+                                      buildInputField(
                                         controller: phone,
                                         label: 'رقم الجوال',
                                         hint: '966500000000',
                                         validator: (val) {
-                                          if(val == '') {
+                                          if (val == '') {
                                             return 'الرجاء ادخال رقم الجوال';
                                           }
                                           return null;
                                         },
                                         keyboardType: TextInputType.phone,
                                       ),
-                                        SizedBox(height: verticalSpacing),
+                                      SizedBox(height: verticalSpacing),
 
                                       buildInputField(
                                         controller: password,
@@ -201,17 +207,17 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                                         hint: '**********',
                                         obscureText: true,
                                         validator: (val) {
-                                          if(val == '') {
+                                          if (val == '') {
                                             return 'الرجاء ادخال كلمة النرور';
-                                          } else if(val!.length < 8) {
+                                          } else if (val!.length < 8) {
                                             return 'كلمة المرور يجب الا تقل عن ٨ رموز ';
                                           }
                                           return null;
                                         },
                                       ),
-                                      
+
                                       SizedBox(height: verticalSpacing),
-                                      
+
                                       // Confirm password field
                                       buildInputField(
                                         controller: confirm_password,
@@ -219,21 +225,21 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                                         hint: '**********',
                                         obscureText: true,
                                         validator: (val) {
-                                          if(val == '') {
+                                          if (val == '') {
                                             return 'الرجاء ادخال اعادة كلمة النرور';
-                                          } else if(val!.length < 8) {
+                                          } else if (val!.length < 8) {
                                             return 'اعادة كلمة المرور يجب الا تقل عن ٨ رموز ';
-                                          } else if(val != password.text) {
+                                          } else if (val != password.text) {
                                             return 'كلمتا المرور غير متطابقتين';
                                           }
                                           return null;
                                         },
                                       ),
-                                      
+
                                       SizedBox(height: verticalSpacing * 1.5),
-                                      
-                                      buildLicenseSection(context, isSmallScreen, verticalSpacing),
-                                      
+
+                                      buildLicenseSection(context,
+                                          isSmallScreen, verticalSpacing),
                                     ],
                                   ),
                                 ),
@@ -244,7 +250,7 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                       ),
                     ),
                   ),
-                  
+
                   // Fixed button at the bottom
                   Positioned(
                     left: horizontalPadding,
@@ -262,24 +268,51 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                       ),
                       child: MaterialButton(
                         onPressed: () async {
-                          if(formstate.currentState!.validate()) {
+                          if (formstate.currentState!.validate()) {
                             try {
-                              final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+                              final credential = await FirebaseAuth.instance
+                                  .createUserWithEmailAndPassword(
                                 email: email.text,
                                 password: password.text,
                               );
                               if (context.mounted) {
-                                // Handle successful registration
+                                // Create seller profile in Firestore
+                                final uid = credential.user!.uid;
+                                await FirebaseFirestore.instance
+                                    .collection('sellers')
+                                    .doc(uid)
+                                    .set({
+                                  'name': full_name.text.trim(),
+                                  'email': email.text.trim(),
+                                  'phone': phone.text.trim(),
+                                  'license_number': license_number.text.trim(),
+                                  'licence_created':
+                                      licence_created.text.trim(),
+                                  'licence_expired':
+                                      licence_expired.text.trim(),
+                                  // socials, initially empty, can be edited later via a settings screen
+                                  'twitter': '',
+                                  'instagram': '',
+                                  'snapchat': '',
+                                  'created_at': FieldValue.serverTimestamp(),
+                                }, SetOptions(merge: true));
+
+                                // Navigate to profile screen
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(
+                                      builder: (_) => const SellerProfile()),
+                                );
                               }
                             } on FirebaseAuthException catch (e) {
                               String errorMessage = 'فشل في انشاء الحساب.';
-                              
+
                               if (e.code == 'weak-password') {
                                 errorMessage = 'كلمة المرور ضعيفه جدا.';
                               } else if (e.code == 'email-already-in-use') {
-                                errorMessage = 'يوجد حساب مسجل مسبقا بنفس البريد الالكتروني.';
+                                errorMessage =
+                                    'يوجد حساب مسجل مسبقا بنفس البريد الالكتروني.';
                               }
-                              
+
                               if (context.mounted) {
                                 AwesomeDialog(
                                   context: context,
@@ -311,18 +344,16 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                           }
                         },
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)
-                        ),
+                            borderRadius: BorderRadius.circular(10)),
                         color: Colors.blue,
                         elevation: 2,
-                        padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 12 : 15),
-                        child: Text(
-                          'انشاء الحساب', 
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: isSmallScreen ? 14 : 16,
-                          )
-                        ),
+                        padding: EdgeInsets.symmetric(
+                            vertical: isSmallScreen ? 12 : 15),
+                        child: Text('انشاء الحساب',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: isSmallScreen ? 14 : 16,
+                            )),
                       ),
                     ),
                   ),
@@ -333,7 +364,9 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
         ),
       ),
     );
-  }Widget buildInputField({
+  }
+
+  Widget buildInputField({
     required TextEditingController controller,
     required String label,
     required String hint,
@@ -375,7 +408,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: Colors.blue, width: 2),
             ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
           ),
           keyboardType: keyboardType,
         ),
@@ -384,7 +418,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
   }
 
   // Helper method to build license section
-  Widget buildLicenseSection(BuildContext context, bool isSmallScreen, double verticalSpacing) {
+  Widget buildLicenseSection(
+      BuildContext context, bool isSmallScreen, double verticalSpacing) {
     return Container(
       margin: EdgeInsets.only(bottom: isSmallScreen ? 16 : 20),
       padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
@@ -431,10 +466,9 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
             keyboardType: TextInputType.number,
           ),
           SizedBox(height: verticalSpacing),
-          
-        Column(
-          children: [
-            Column(
+          Column(
+            children: [
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
@@ -467,7 +501,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(color: Colors.blue, width: 2),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 20),
                     ),
                     onTap: () async {
                       final DateTime? picked = await showDatePicker(
@@ -488,7 +523,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                       );
                       if (picked != null) {
                         setState(() {
-                          licence_created.text = "${picked.day}/${picked.month}/${picked.year}";
+                          licence_created.text =
+                              "${picked.day}/${picked.month}/${picked.year}";
                         });
                       }
                     },
@@ -501,9 +537,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                   ),
                 ],
               ),
-           
-            SizedBox(height: 12),
-          Column(
+              SizedBox(height: 12),
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
@@ -536,12 +571,14 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(color: Colors.blue, width: 2),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 20),
                     ),
                     onTap: () async {
                       final DateTime? picked = await showDatePicker(
                         context: context,
-                        initialDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDate:
+                            DateTime.now().add(const Duration(days: 365)),
                         firstDate: DateTime.now(),
                         lastDate: DateTime(2100),
                         builder: (context, child) {
@@ -557,7 +594,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                       );
                       if (picked != null) {
                         setState(() {
-                          licence_expired.text = "${picked.day}/${picked.month}/${picked.year}";
+                          licence_expired.text =
+                              "${picked.day}/${picked.month}/${picked.year}";
                         });
                       }
                     },
@@ -570,9 +608,8 @@ class _SellerRegisterState extends State<SellerRegister> with TickerProviderStat
                   ),
                 ],
               ),
-        
-          ],
-        ),
+            ],
+          ),
         ],
       ),
     );
