@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mskn/home_page.dart';
 import 'package:mskn/seller_profile.dart';
 
 class SellerRegister extends StatefulWidget {
@@ -251,7 +252,6 @@ class _SellerRegisterState extends State<SellerRegister>
                     ),
                   ),
 
-                  // Fixed button at the bottom
                   Positioned(
                     left: horizontalPadding,
                     right: horizontalPadding,
@@ -276,31 +276,28 @@ class _SellerRegisterState extends State<SellerRegister>
                                 password: password.text,
                               );
                               if (context.mounted) {
-                                // Create seller profile in Firestore
+
                                 final uid = credential.user!.uid;
                                 await FirebaseFirestore.instance
-                                    .collection('sellers')
+                                    .collection('profile')
                                     .doc(uid)
                                     .set({
                                   'name': full_name.text.trim(),
-                                  'email': email.text.trim(),
                                   'phone': phone.text.trim(),
                                   'license_number': license_number.text.trim(),
                                   'licence_created':
                                       licence_created.text.trim(),
                                   'licence_expired':
                                       licence_expired.text.trim(),
-                                  // socials, initially empty, can be edited later via a settings screen
                                   'twitter': '',
                                   'instagram': '',
                                   'snapchat': '',
                                   'created_at': FieldValue.serverTimestamp(),
                                 }, SetOptions(merge: true));
 
-                                // Navigate to profile screen
                                 Navigator.of(context).pushReplacement(
                                   MaterialPageRoute(
-                                      builder: (_) => const SellerProfile()),
+                                      builder: (_) => const HomePage()),
                                 );
                               }
                             } on FirebaseAuthException catch (e) {
