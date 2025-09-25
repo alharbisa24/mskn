@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'main.dart';
 
 class EmailPasswordLogin extends StatefulWidget {
   const EmailPasswordLogin({super.key});
@@ -32,8 +34,35 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+      
       if (!mounted) return;
-      Navigator.of(context).pop();
+      
+      // Get the current user
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // Check if user exists in profile table
+        final profileDoc = await FirebaseFirestore.instance
+            .collection('profile')
+            .doc(user.uid)
+            .get();
+        
+        if (profileDoc.exists) {
+          // Check the rank field to see if user is a seller
+          final userData = profileDoc.data();
+          final rank = userData?['rank'] ?? '';
+          
+          // Navigate to main file regardless of rank (seller or normal user)
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => MyApp()),
+          );
+        } else {
+          // User not found in profile table
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('المستخدم غير موجود في النظام')),
+          );
+          await FirebaseAuth.instance.signOut();
+        }
+      }
     } on FirebaseAuthException catch (e) {
       String message = 'حدث خطأ أثناء تسجيل الدخول';
       if (e.code == 'user-not-found') {
@@ -142,6 +171,18 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
                   ),
                   const SizedBox(width: 44),
                 ],
+              ),
+              const SizedBox(height: 32),
+              // Logo image at the top
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'images/logo.png',
+                    fit: BoxFit.contain,
+                    width: 120,
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               Form(
