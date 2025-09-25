@@ -61,6 +61,49 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    if (_emailController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('الرجاء إدخال البريد الإلكتروني أولاً')),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String message = 'حدث خطأ أثناء إرسال رابط إعادة التعيين';
+      if (e.code == 'user-not-found') {
+        message = 'لا يوجد مستخدم بهذا البريد';
+      } else if (e.code == 'invalid-email') {
+        message = 'البريد الإلكتروني غير صالح';
+      } else if (e.code == 'too-many-requests') {
+        message = 'تم إرسال طلبات كثيرة، حاول مرة أخرى لاحقاً';
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ غير متوقع: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,6 +231,22 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
                           borderSide: const BorderSide(color: Colors.blue, width: 2),
                         ),
                         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Forgot password button
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: _resetPassword,
+                        child: Text(
+                          'نسيت كلمة المرور؟',
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
