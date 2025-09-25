@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mskn/register_menu.dart';
 import 'package:mskn/seller_profile.dart';
+import 'package:mskn/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +57,14 @@ class _MyHomePageState extends State<MyHomePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text("مسكن"),
-          ElevatedButton(onPressed: () {}, child: Text("تسجيل الدخول")),
+          ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                      builder: (context) => const EmailPasswordLogin()),
+                );
+              },
+              child: Text("تسجيل الدخول")),
           ElevatedButton(
               onPressed: () {
                 Navigator.of(context).push(
