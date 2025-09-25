@@ -293,6 +293,7 @@ class _SellerRegisterState extends State<SellerRegister>
                                   'instagram': '',
                                   'snapchat': '',
                                   'created_at': FieldValue.serverTimestamp(),
+                                  'rank': 'seller'
                                 }, SetOptions(merge: true));
 
                                 Navigator.of(context).pushReplacement(
