@@ -51,10 +51,26 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
           final userData = profileDoc.data();
           final rank = userData?['rank'] ?? '';
           
-          // Navigate to main file regardless of rank (seller or normal user)
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => MyApp()),
-          );
+          // Route based on user rank
+          switch (rank) {
+            case 'seller':
+              // Navigate to seller homepage (currently using MyApp until seller homepage is created)
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => MyApp()),
+              );
+              break;
+            case 'buyer':
+              // Navigate to buyer homepage (currently using MyApp until buyer homepage is created)
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => MyApp()),
+              );
+              break;
+            default:
+              // Navigate to regular user homepage
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => MyApp()),
+              );
+          }
         } else {
           // User not found in profile table
           ScaffoldMessenger.of(context).showSnackBar(
