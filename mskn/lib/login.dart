@@ -54,18 +54,42 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
           // Route based on user rank
           switch (rank) {
             case 'seller':
-              // Navigate to seller homepage (currently using MyApp until seller homepage is created)
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => MyApp()),
+              // Show success message for seller
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تسجيل الدخول بنجاح كبائع'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
               );
+              // Navigate to seller homepage (currently using MyApp until seller homepage is created)
+              // Navigator.of(context).pushReplacement(
+              //   MaterialPageRoute(builder: (context) => MyApp()),
+              // );
               break;
             case 'buyer':
-              // Navigate to buyer homepage (currently using MyApp until buyer homepage is created)
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => MyApp()),
+              // Show success message for buyer
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تسجيل الدخول بنجاح كمشتري'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
               );
+              // Navigate to buyer homepage (currently using MyApp until buyer homepage is created)
+              // Navigator.of(context).pushReplacement(
+              //   MaterialPageRoute(builder: (context) => MyApp()),
+              // );
               break;
             default:
+              // Show success message for regular user
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تسجيل الدخول بنجاح'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                ),
+              );
               // Navigate to regular user homepage
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (context) => MyApp()),
