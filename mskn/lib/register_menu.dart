@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mskn/seller_register.dart';
+import 'package:mskn/user_register.dart';
 
 class RegisterMenu extends StatefulWidget {
   const RegisterMenu({super.key});
@@ -8,7 +9,8 @@ class RegisterMenu extends StatefulWidget {
   State<RegisterMenu> createState() => _RegisterMenuState();
 }
 
-class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMixin {
+class _RegisterMenuState extends State<RegisterMenu>
+    with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -20,7 +22,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -28,7 +30,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
       parent: _animationController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -36,7 +38,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
       parent: _animationController,
       curve: Curves.easeOutCubic,
     ));
-    
+
     _animationController.forward();
   }
 
@@ -45,12 +47,13 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
     _animationController.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        padding: EdgeInsets.symmetric(vertical: 40),
+        color: Colors.white,
+        child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
@@ -62,7 +65,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                   children: [
                     // شريط علوي مودرن
                     Container(
-                      padding: EdgeInsets.only(top: 20, bottom: 30),
+                      padding: const EdgeInsets.only(top: 20, bottom: 30),
                       child: Row(
                         children: [
                           Container(
@@ -74,43 +77,43 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                               border: Border.all(color: Colors.grey[200]!),
                             ),
                             child: IconButton(
-                              icon: Icon(Icons.arrow_back_ios, color: Colors.grey[700], size: 18),
+                              icon: Icon(Icons.arrow_back_ios,
+                                  color: Colors.grey[700], size: 18),
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ),
-                          Expanded(
+                          const Expanded(
                             child: Text(
                               'إنشاء حساب جديد',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.grey[800],
+                                color: Color(0xFF374151),
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          SizedBox(width: 44), 
+                          const SizedBox(width: 44),
                         ],
                       ),
                     ),
-                    
+
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                        ClipRRect(
-                              borderRadius: BorderRadius.circular(24),
-                              child: Image.asset(
-                                'images/logo.png',
-                                fit: BoxFit.contain,
-                                width: 120,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(24),
+                            child: Image.asset(
+                              'images/logo.png',
+                              fit: BoxFit.contain,
+                              width: 120,
+                            ),
+                          ),
 
-                              )
-                        ),
-                          
-                          SizedBox(height: 32),
-                          
-                          Text(
+                          const SizedBox(height: 32),
+
+                          const Text(
                             'اختر نوع الحساب',
                             style: TextStyle(
                               fontSize: 28,
@@ -120,31 +123,32 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          SizedBox(height: 8),
-                          Text(
+                          const SizedBox(height: 8),
+                          const Text(
                             'حدد طريقة الدخول المناسبة لك',
                             style: TextStyle(
-                              fontSize: 16, 
+                              fontSize: 16,
                               color: Color(0xFF6B7280),
                               fontWeight: FontWeight.w400,
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          
-                          SizedBox(height: 48),
-                          
+
+                          const SizedBox(height: 48),
+
                           // بطاقة الأزرار المودرن
                           Container(
-                            padding: EdgeInsets.all(32),
+                            padding: const EdgeInsets.all(32),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(color: Colors.grey[200]!),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Color(0xFF111827).withOpacity(0.04),
+                                  color:
+                                      const Color(0xFF111827).withOpacity(0.04),
                                   blurRadius: 32,
-                                  offset: Offset(0, 12),
+                                  offset: const Offset(0, 12),
                                 ),
                               ],
                             ),
@@ -154,23 +158,33 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                                 _buildUserTypeButton(
                                   text: 'انشاء الحساب كمشتري',
                                   icon: Icons.shopping_bag_outlined,
-                                  color: Color(0xFF6366F1),
-                                  backgroundColor: Color(0xFF6366F1).withOpacity(0.08),
+                                  color: const Color(0xFF6366F1),
+                                  backgroundColor:
+                                      const Color(0xFF6366F1).withOpacity(0.08),
                                   onPressed: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const BuyerRegister()),
+                                    );
                                   },
                                 ),
-                                
-                                SizedBox(height: 16),
-                                
+
+                                const SizedBox(height: 16),
+
                                 // خط فاصل مودرن
                                 Row(
                                   children: [
-                                    Expanded(child: Container(height: 1, color: Color(0xFFE5E7EB))),
+                                    Expanded(
+                                        child: Container(
+                                            height: 1,
+                                            color: const Color(0xFFE5E7EB))),
                                     Container(
-                                      margin: EdgeInsets.symmetric(horizontal: 16),
-                                      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-
-                                      child: Text(
+                                      margin: const EdgeInsets.symmetric(
+                                          horizontal: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 6),
+                                      child: const Text(
                                         'أو',
                                         style: TextStyle(
                                           color: Color(0xFF6B7280),
@@ -179,20 +193,28 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                                         ),
                                       ),
                                     ),
-                                    Expanded(child: Container(height: 1, color: Color(0xFFE5E7EB))),
+                                    Expanded(
+                                        child: Container(
+                                            height: 1,
+                                            color: const Color(0xFFE5E7EB))),
                                   ],
                                 ),
-                                
-                                SizedBox(height: 16),
-                                
+
+                                const SizedBox(height: 16),
+
                                 // زر بائع مودرن
                                 _buildUserTypeButton(
                                   text: 'انشاء الحساب كبائع',
                                   icon: Icons.storefront_outlined,
-                                  color: Color(0xFFF59E0B),
-                                  backgroundColor: Color(0xFFF59E0B).withOpacity(0.08),
+                                  color: const Color(0xFFF59E0B),
+                                  backgroundColor:
+                                      const Color(0xFFF59E0B).withOpacity(0.08),
                                   onPressed: () {
-                                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=> SellerRegister()));
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              const SellerRegister()),
+                                    );
                                   },
                                 ),
                               ],
@@ -201,9 +223,9 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                         ],
                       ),
                     ),
-                    
+
                     // نص في الأسفل مودرن
-                    Padding(
+                    const Padding(
                       padding: EdgeInsets.only(top: 24),
                       child: Text(
                         'بالمتابعة، فإنك توافق على شروط الخدمة وسياسة الخصوصية',
@@ -220,11 +242,11 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
               ),
             ),
           ),
-       
+        ),
       ),
     );
   }
-  
+
   Widget _buildUserTypeButton({
     required String text,
     required IconData icon,
@@ -246,7 +268,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
           borderRadius: BorderRadius.circular(16),
           onTap: onPressed,
           child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -263,11 +285,11 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
                     size: 20,
                   ),
                 ),
-                SizedBox(width: 16),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Text(
                     text,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF111827),
