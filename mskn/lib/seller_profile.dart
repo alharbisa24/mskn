@@ -15,7 +15,7 @@ class SellerProfile extends StatelessWidget {
             ? _buildNotLoggedIn(context)
             : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
                 stream: FirebaseFirestore.instance
-                    .collection('sellers')
+                    .collection('profile')
                     .doc(user.uid)
                     .snapshots(),
                 builder: (context, snapshot) {

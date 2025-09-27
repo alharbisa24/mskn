@@ -50,8 +50,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        color: Colors.white,
-        child: SafeArea(
+        padding: EdgeInsets.symmetric(vertical: 40),
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: SlideTransition(
@@ -221,7 +220,7 @@ class _RegisterMenuState extends State<RegisterMenu> with TickerProviderStateMix
               ),
             ),
           ),
-        ),
+       
       ),
     );
   }
