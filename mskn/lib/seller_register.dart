@@ -292,6 +292,7 @@ class _SellerRegisterState extends State<SellerRegister>
                                   'twitter': '',
                                   'instagram': '',
                                   'snapchat': '',
+                                  "rank":"seller",
                                   'created_at': FieldValue.serverTimestamp(),
                                 }, SetOptions(merge: true));
 
