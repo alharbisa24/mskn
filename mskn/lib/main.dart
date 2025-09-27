@@ -51,29 +51,26 @@ class MyApp extends StatelessWidget {
       },
     );
   }
-    
-    Widget _handleAppStartup() {
+
+  Widget _handleAppStartup() {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      
-      // Check if user is logged in
-      final isLoggedIn = snapshot.hasData && snapshot.data != null;
-      
-      if (isLoggedIn) {
-        return const HomePage();
-      } else {
-        return const OnboardingScreen();
-      }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // Check if user is logged in
+        final isLoggedIn = snapshot.hasData && snapshot.data != null;
+
+        if (isLoggedIn) {
+          return const HomePage();
+        } else {
+          return const OnboardingScreen();
+        }
       },
     );
-    }
-    
-
-  
+  }
 }
 
 class OnboardingScreen extends StatefulWidget {
@@ -86,7 +83,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
+
   final List<OnboardingItem> _onboardingItems = [
     OnboardingItem(
       title: 'مرحباً بك في مسكن',
@@ -96,19 +93,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     ),
     OnboardingItem(
       title: 'خريطة تفاعلية متطورة',
-      description: 'استعرض أنسب الخيارات العقارية مباشرة على الخريطة بطريقة تفاعلية',
+      description:
+          'استعرض أنسب الخيارات العقارية مباشرة على الخريطة بطريقة تفاعلية',
       color: const Color(0xFF34A853),
       imageIcon: Icons.map_rounded,
     ),
     OnboardingItem(
       title: 'المساعد الذكي',
-      description: 'استفد من مساعدنا الذكي للحصول على أفضل النصائح والتوصيات العقارية',
+      description:
+          'استفد من مساعدنا الذكي للحصول على أفضل النصائح والتوصيات العقارية',
       color: const Color(0xFFEA4335),
       imageIcon: Icons.assistant_rounded,
     ),
     OnboardingItem(
       title: 'حاسبة القروض',
-      description: 'احسب قروضك العقارية بسهولة ودقة عالية وحدد الخيار الأمثل لك',
+      description:
+          'احسب قروضك العقارية بسهولة ودقة عالية وحدد الخيار الأمثل لك',
       color: const Color(0xFFFBBC04),
       imageIcon: Icons.calculate_rounded,
     ),
@@ -123,7 +123,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -160,7 +160,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
             ),
-            
+
             // Main content
             SafeArea(
               child: Column(
@@ -183,7 +183,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                   ),
-                  
+
                   // Page content
                   Expanded(
                     child: PageView.builder(
@@ -199,7 +199,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       },
                     ),
                   ),
-                  
+
                   // Indicator and buttons
                   Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -224,11 +224,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ),
                         ),
-                        
+
                         // Next or Start button
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
-                          width: _currentPage == _onboardingItems.length - 1 ? 140 : 56,
+                          width: _currentPage == _onboardingItems.length - 1
+                              ? 140
+                              : 56,
                           height: 56,
                           child: ElevatedButton(
                             onPressed: () {
@@ -248,8 +250,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               padding: EdgeInsets.zero,
                             ),
                             child: _currentPage == _onboardingItems.length - 1
-                                ? Text('ابدأ الآن', style: TextStyle(fontSize: 16))
-                                : Icon(Icons.arrow_forward, size: 24, color: Colors.white),
+                                ? Text('ابدأ الآن',
+                                    style: TextStyle(fontSize: 16))
+                                : Icon(Icons.arrow_forward,
+                                    size: 24, color: Colors.white),
                           ),
                         ),
                       ],
@@ -266,7 +270,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Widget _buildOnboardingPage(OnboardingItem item) {
     final Size size = MediaQuery.of(context).size;
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Column(
@@ -317,7 +321,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       MaterialPageRoute(builder: (_) => _handleAuthState()),
     );
   }
-  
+
   Widget _handleAuthState() {
     return StreamBuilder(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -352,10 +356,11 @@ class RootMainPage extends StatefulWidget {
   State<RootMainPage> createState() => _RootMainPageState();
 }
 
-class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderStateMixin {
+class _RootMainPageState extends State<RootMainPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   @override
   void initState() {
     super.initState();
@@ -363,27 +368,27 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: const Interval(0.2, 0.8, curve: Curves.easeInOut),
       ),
     );
-    
+
     _animationController.forward();
   }
-  
+
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -420,7 +425,7 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                   ),
                 ),
               ),
-              
+
               // Main content
               FadeTransition(
                 opacity: _fadeAnimation,
@@ -438,7 +443,7 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         ),
                       ),
                     ),
-                    
+
                     // App name
                     Text(
                       'مسكن',
@@ -448,9 +453,9 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         color: const Color(0xFF1A73E8),
                       ),
                     ),
-                    
+
                     SizedBox(height: 16),
-                    
+
                     // App description
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -463,9 +468,9 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: size.height * 0.08),
-                    
+
                     // Login button
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -489,9 +494,9 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         ),
                       ),
                     ),
-                    
+
                     SizedBox(height: 16),
-                    
+
                     // Register button
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -501,7 +506,8 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         child: OutlinedButton(
                           onPressed: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => RegisterMenu()),
+                              MaterialPageRoute(
+                                  builder: (context) => RegisterMenu()),
                             );
                           },
                           style: OutlinedButton.styleFrom(
@@ -521,8 +527,6 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         ),
                       ),
                     ),
-                    
-               
                   ],
                 ),
               ),
