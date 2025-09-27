@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'main.dart';
+import 'package:mskn/home_page.dart';
 
 class EmailPasswordLogin extends StatefulWidget {
   const EmailPasswordLogin({super.key});
@@ -62,10 +62,10 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
                   duration: Duration(seconds: 2),
                 ),
               );
-              // Navigate to seller homepage (currently using MyApp until seller homepage is created)
-              // Navigator.of(context).pushReplacement(
-              //   MaterialPageRoute(builder: (context) => MyApp()),
-              // );
+              // Navigate to seller homepage
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomePage()),
+              );
               break;
             case 'buyer':
               // Show success message for buyer
@@ -76,10 +76,10 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
                   duration: Duration(seconds: 2),
                 ),
               );
-              // Navigate to buyer homepage (currently using MyApp until buyer homepage is created)
-              // Navigator.of(context).pushReplacement(
-              //   MaterialPageRoute(builder: (context) => MyApp()),
-              // );
+              // Navigate to buyer homepage
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const HomePage()),
+              );
               break;
             default:
               // Show success message for regular user
@@ -92,7 +92,7 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
               );
               // Navigate to regular user homepage
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => MyApp()),
+                MaterialPageRoute(builder: (context) => const HomePage()),
               );
           }
         } else {
