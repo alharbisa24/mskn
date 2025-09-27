@@ -1,4 +1,4 @@
-# Flutter/Dart/Pub
+Flutter/Dart/Pub
 mskn/.dart_tool/
 mskn/.packages
 mskn/.pub-cache/
@@ -8,24 +8,24 @@ mskn/.metadata
 mskn/build/
 mskn/pubspec.lock
 
-# IDE / Editor
+IDE / Editor
 mskn/.idea/
 mskn/.vscode/
 *.iml
-*.log
+.log
 
-# macOS
+macOS
 .DS_Store
 
-# Firebase / Secrets
+Firebase / Secrets
 mskn/.env
 mskn/firebase.json
 mskn/android/app/google-services.json
 mskn/ios/Runner/GoogleService-Info.plist
-mskn/android/app/*.keystore
+mskn/android/app/.keystore
 mskn/android/app/*.jks
 
-# iOS specific
+iOS specific
 mskn/ios/Pods/
 mskn/ios/Runner.xcworkspace/
 mskn/ios/Flutter/Flutter.framework
@@ -34,7 +34,7 @@ mskn/ios/Flutter/Generated.xcconfig
 mskn/ios/Flutter/ephemeral/
 mskn/ios/Flutter/Flutter.podspec.lock
 
-# Android specific
+Android specific
 mskn/android/.gradle/
 mskn/android/app/build/
 mskn/android/local.properties
@@ -42,7 +42,7 @@ mskn/android/app/debug.keystore
 mskn/android/app/google-service.json
 
 
-# Others
+Others
 *.lock
 .env
 mskn/firebase.json
