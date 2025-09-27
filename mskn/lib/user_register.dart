@@ -275,10 +275,10 @@ class _BuyerRegisterState extends State<BuyerRegister>
                               }, SetOptions(merge: true));
 
                               if (context.mounted) {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                      builder: (_) => const HomePage()),
-                                );
+                             Navigator.of(context).pushAndRemoveUntil(
+  MaterialPageRoute(builder: (_) => const HomePage()),
+  (Route<dynamic> route) => false, // هذا سيمسح كل الصفحات السابقة
+);
                               }
                             } on FirebaseAuthException catch (e) {
                               String errorMessage = 'فشل في انشاء الحساب.';

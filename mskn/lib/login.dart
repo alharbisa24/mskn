@@ -72,10 +72,10 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
       );
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const HomePage()),
+        (Route<dynamic> route) => false, 
       );
-
     } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

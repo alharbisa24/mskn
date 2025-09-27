@@ -295,10 +295,10 @@ class _SellerRegisterState extends State<SellerRegister>
                                   'created_at': FieldValue.serverTimestamp(),
                                 }, SetOptions(merge: true));
 
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                      builder: (_) => const HomePage()),
-                                );
+                                        Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const HomePage()),
+            (Route<dynamic> route) => false, // هذا سيمسح كل الصفحات السابقة
+          );
                               }
                             } on FirebaseAuthException catch (e) {
                               String errorMessage = 'فشل في انشاء الحساب.';
