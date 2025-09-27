@@ -16,6 +16,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  
   runApp(const MyApp());
 }
 
@@ -476,7 +478,9 @@ class _RootMainPageState extends State<RootMainPage> with SingleTickerProviderSt
                         height: 56,
                         child: ElevatedButton(
                           onPressed: () {
-                            // TODO: Navigate to login screen
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const EmailPasswordLogin()),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             elevation: 0,
