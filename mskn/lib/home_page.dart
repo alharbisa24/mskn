@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mskn/main.dart';
+import 'package:mskn/seller_profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,16 +25,18 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _user = user;
       });
-      
+
       if (user == null) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=> MyApp()));
+        Navigator.of(context)
+            .pushReplacement(MaterialPageRoute(builder: (context) => MyApp()));
       }
     });
   }
 
   void _signOut() async {
     await _auth.signOut();
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context)=> MyApp()));
+    Navigator.of(context)
+        .pushReplacement(MaterialPageRoute(builder: (context) => MyApp()));
   }
 
   @override
@@ -48,6 +51,15 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Home Page'),
         actions: [
+          IconButton(
+            tooltip: 'الملف الشخصي',
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SellerProfile()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _signOut,
