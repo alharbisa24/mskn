@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mskn/main.dart';
 import 'package:mskn/seller_profile.dart';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,6 +14,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _user;
+  StreamSubscription<User?>? _authStateSubscription;
 
   @override
   void initState() {
@@ -20,23 +22,33 @@ class _HomePageState extends State<HomePage> {
     _checkAuthState();
   }
 
-  void _checkAuthState() {
-    _auth.authStateChanges().listen((User? user) {
-      setState(() {
-        _user = user;
-      });
+  @override
+  void dispose() {
+    _authStateSubscription?.cancel();
+    super.dispose();
+  }
 
-      if (user == null) {
-        Navigator.of(context)
-            .pushReplacement(MaterialPageRoute(builder: (context) => MyApp()));
+  void _checkAuthState() {
+    _authStateSubscription = _auth.authStateChanges().listen((User? user) {
+      if (mounted) {
+        setState(() {
+          _user = user;
+        });
+
+        if (user == null) {
+          Navigator.of(context)
+              .pushReplacement(MaterialPageRoute(builder: (context) => MyApp()));
+        }
       }
     });
   }
 
-  void _signOut() async {
+  Future<void> _signOut() async {
     await _auth.signOut();
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute(builder: (context) => MyApp()));
+    if (mounted) {
+      Navigator.of(context)
+          .pushReplacement(MaterialPageRoute(builder: (context) => MyApp()));
+    }
   }
 
   @override

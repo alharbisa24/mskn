@@ -23,112 +23,87 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
     super.dispose();
   }
 
-  Future<void> _signIn() async {
-    if (!_formKey.currentState!.validate()) return;
+ Future<void> _signIn() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      
-      if (!mounted) return;
-      
-      // Get the current user
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // Check if user exists in profile table
-        final profileDoc = await FirebaseFirestore.instance
-            .collection('profile')
-            .doc(user.uid)
-            .get();
-        
-        if (profileDoc.exists) {
-          // Check the rank field to see if user is a seller
-          final userData = profileDoc.data();
-          final rank = userData?['rank'] ?? '';
-          
-          // Route based on user rank
-          switch (rank) {
-            case 'seller':
-              // Show success message for seller
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تسجيل الدخول بنجاح كبائع'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              // Navigate to seller homepage
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const HomePage()),
-              );
-              break;
-            case 'buyer':
-              // Show success message for buyer
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تسجيل الدخول بنجاح كمشتري'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              // Navigate to buyer homepage
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const HomePage()),
-              );
-              break;
-            default:
-              // Show success message for regular user
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تسجيل الدخول بنجاح'),
-                  backgroundColor: Colors.green,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-              // Navigate to regular user homepage
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => const HomePage()),
-              );
-          }
-        } else {
-          // User not found in profile table
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('المستخدم غير موجود في النظام')),
-          );
-          await FirebaseAuth.instance.signOut();
-        }
+  if (!mounted) return;
+  setState(() => _isLoading = true);
+
+  try {
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final profileDoc = await FirebaseFirestore.instance
+        .collection('profile')
+        .doc(user.uid)
+        .get();
+
+    if (!mounted) return;
+
+    if (profileDoc.exists) {
+      final rank = profileDoc.data()?['rank'] ?? '';
+      String message;
+
+      switch (rank) {
+        case 'seller':
+          message = 'تم تسجيل الدخول بنجاح كبائع';
+          break;
+        case 'buyer':
+          message = 'تم تسجيل الدخول بنجاح كمشتري';
+          break;
+        default:
+          message = 'تم تسجيل الدخول بنجاح';
       }
-    } on FirebaseAuthException catch (e) {
-      String message = 'حدث خطأ أثناء تسجيل الدخول';
-      if (e.code == 'user-not-found') {
-        message = 'لا يوجد مستخدم بهذا البريد';
-      } else if (e.code == 'wrong-password') {
-        message = 'كلمة المرور غير صحيحة';
-      } else if (e.code == 'invalid-email') {
-        message = 'البريد الإلكتروني غير صالح';
-      }
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
       );
-    } catch (e) {
+
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+      );
+
+    } else {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطأ غير متوقع: $e')),
+        const SnackBar(content: Text('المستخدم غير موجود في النظام')),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      await FirebaseAuth.instance.signOut();
     }
+  } on FirebaseAuthException catch (e) {
+    if (!mounted) return;
+
+    String message = 'حدث خطأ أثناء تسجيل الدخول';
+    if (e.code == 'user-not-found') message = 'لا يوجد مستخدم بهذا البريد';
+    if (e.code == 'wrong-password') message = 'كلمة المرور غير صحيحة';
+    if (e.code == 'invalid-email') message = 'البريد الإلكتروني غير صالح';
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('خطأ غير متوقع: $e')),
+    );
+  } finally {
+    if (!mounted) return;
+    setState(() => _isLoading = false);
   }
+}
 
   Future<void> _resetPassword() async {
     if (_emailController.text.trim().isEmpty) {
