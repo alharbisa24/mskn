@@ -6,6 +6,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mskn/home_page.dart';
 import 'package:mskn/register_menu.dart';
+import 'package:mskn/seller_profile.dart';
+import 'package:mskn/login.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +16,8 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  
   runApp(const MyApp());
 }
 
@@ -479,7 +483,9 @@ class _RootMainPageState extends State<RootMainPage>
                         height: 56,
                         child: ElevatedButton(
                           onPressed: () {
-                            // TODO: Navigate to login screen
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => const EmailPasswordLogin()),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             elevation: 0,
