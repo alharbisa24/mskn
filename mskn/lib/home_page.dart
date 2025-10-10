@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:mskn/home/add.dart';
@@ -6,6 +7,9 @@ import 'package:mskn/home/map.dart';
 import 'package:mskn/home/more.dart';
 import 'package:mskn/main.dart';
 import 'dart:async';
+
+import 'package:mskn/seller_profile.dart';
+import 'package:mskn/user_profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,7 +31,7 @@ class _HomePageState extends State<HomePage> {
     const HomeMainPage(),
     const MapPage(),
     const AddPage(),
-    const AccountContent(),
+    AccountPageWrapper(),
     const MorePage(),
   ];
 
@@ -82,30 +86,21 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.6),
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(30),
         child: Theme(
           data: Theme.of(context).copyWith(
-            canvasColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            highlightColor: Colors.transparent,
+            canvasColor: Color(0xFFFDFDFD),
+            splashColor: Color(0xFFFDFDFD),
+            highlightColor: Color(0xFFFDFDFD),
           ),
           child: BottomNavigationBar(
-            backgroundColor: Colors.transparent,
+            backgroundColor: Colors.white,
             selectedItemColor: const Color(0xFF1A73E8),
             unselectedItemColor: Colors.grey,
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
-            type: BottomNavigationBarType.fixed,
             elevation: 0,
             iconSize: 24,
             selectedFontSize: 12,
@@ -121,8 +116,6 @@ class _HomePageState extends State<HomePage> {
               ),
               BottomNavigationBarItem(
                 icon: Container(
-                  height: 40,
-                  width: 40,
                   decoration: const BoxDecoration(
                     color: Color(0xFF1A73E8),
                     shape: BoxShape.circle,
@@ -148,28 +141,40 @@ class _HomePageState extends State<HomePage> {
 
 
 }
-
-
-class AccountContent extends StatelessWidget {
-  const AccountContent({Key? key}) : super(key: key);
+class AccountPageWrapper extends StatelessWidget {
+  const AccountPageWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person_outline, size: 100, color: Colors.grey[300]),
-            const SizedBox(height: 16),
-            Text(
-              'صفحة الحساب',
-              style: TextStyle(color: Colors.grey[600], fontSize: 18),
-            ),
-          ],
-        ),
-      ),
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return const Center(child: Text("لم يتم تسجيل الدخول"));
+    }
+
+    return FutureBuilder<DocumentSnapshot>(
+      future: FirebaseFirestore.instance
+          .collection('profile')
+          .doc(user.uid)
+          .get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Center(child: Text("المستخدم غير موجود"));
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final rank = data['rank'] ?? '';
+
+        if (rank == 'seller') {
+          return const SellerProfile();
+        } else {
+          return const UserProfile();
+        }
+      },
     );
   }
 }

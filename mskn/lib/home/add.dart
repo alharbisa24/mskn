@@ -10,7 +10,18 @@ class AddPage extends StatefulWidget {
 class _AddPageState extends State<AddPage> {
   @override
   Widget build(BuildContext context) {
-   return Scaffold(
-      body: Text("home"),
-    );  }
+     return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Center(
+                child: Text('Add Page'),
+              ),
+            ],
+        )
+        ),
+    ),
+   );
+    }
 }

@@ -10,7 +10,18 @@ class MorePage extends StatefulWidget {
 class _MorePageState extends State<MorePage> {
   @override
   Widget build(BuildContext context) {
-   return Scaffold(
-      body: Text("home"),
-    );  }
+  return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Center(
+                child: Text('Map Page'),
+              ),
+            ],
+        )
+        ),
+    ),
+   );
+    }
 }

@@ -10,8 +10,18 @@ class HomeMainPage extends StatefulWidget {
 class _HomeMainPageState extends State<HomeMainPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Text("home"),
-    );
+  return Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Center(
+                child: Text('Home Page'),
+              ),
+            ],
+        )
+        ),
+    ),
+   );
   }
 }

@@ -41,9 +41,16 @@ dependencies:
   firebase_auth: ^6.0.1
   flutter_dotenv: ^6.0.0
   google_fonts: ^5.0.0
-  awesome_dialog: ^3.2.1
+  awesome_dialog: ^3.3.0
   image_picker: ^1.2.0
-
+  google_maps_flutter: ^2.7.0
+  flutter_bloc: ^9.1.1
+  flutter_screenutil: ^5.9.3
+  carousel_slider: ^5.1.1
+  url_launcher: ^6.1.12
+  google_places_flutter: ^2.1.1
+  hugeicons: ^1.1.1
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter

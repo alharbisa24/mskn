@@ -189,19 +189,7 @@ class SellerProfile extends StatelessWidget {
   Widget _buildTopBar(BuildContext context, {required String title}) {
     return Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.grey[700], size: 18),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+     
         const SizedBox(width: 12),
         Expanded(
           child: Text(
