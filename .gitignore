@@ -48,3 +48,4 @@ Others
 mskn/firebase.json
 mskn/android/app/google-services.json
 mskn/ios/Runner/GoogleService-Info.plist
+mskn/ios/Runner/AppDelegate.swift
