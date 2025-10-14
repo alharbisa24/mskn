@@ -164,7 +164,7 @@ class SellerProfile extends StatelessWidget {
                           _InfoTile(
                             icon: Icons.alternate_email,
                             label: 'تويتر',
-                            value: _textOrNA(data['twitter']),
+                            value: _textOrNA(data['x']),
                           ),
                           _InfoTile(
                             icon: Icons.camera_alt_outlined,

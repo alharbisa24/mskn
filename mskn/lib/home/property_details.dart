@@ -1,11 +1,17 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:mskn/home/models/property.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PropertyDetails extends StatefulWidget {
-  const PropertyDetails({super.key});
+  Property property;
+  PropertyDetails({super.key, required this.property});
 
   @override
   State<PropertyDetails> createState() => _PropertyDetailsState();
@@ -17,100 +23,124 @@ final CarouselSliderController _carouselController = CarouselSliderController();
 
   bool isFavorite = false;
   
-  final Map<String, dynamic> propertyData = {
-    'title': 'فيلا فاخرة في حي النرجس',
-    'price': 2500000,
-    'location': {
-      'address': 'حي النرجس، شمال الرياض، المملكة العربية السعودية',
-      'coordinates': const LatLng(24.7869, 46.6669),
-    },
-    'type': 'فيلا',
-    'purchaseType': 'بيع',
-    'area': 350,
-    'rooms': 5,
-    'bathrooms': 4,
-    'streetWidth': 16,
-    'propertyAge': '١٠ سنين',
-    'licenseNumber': 'LIC-2023-748591',
-    'seller': {
-      'name': 'أحمد محمد',
-      'phone': '0555123456',
-      'email': 'ahmed@example.com',
-      'avatar': 'https://randomuser.me/api/portraits/men/32.jpg',
-      'rating': 4.8,
-      'type':'seller',
-    },
-    'description': 'فيلا فاخرة ومميزة في حي النرجس بتصميم عصري، تتميز بموقع استراتيجي قريب من الخدمات والمرافق العامة. تحتوي على صالة كبيرة ومجلس رجال ونساء ومطبخ مجهز بالكامل وغرف نوم واسعة مع حمامات خاصة. الفيلا مجهزة بأنظمة تكييف مركزية وأنظمة أمان متطورة.',
-    'images': [
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      'https://images.unsplash.com/photo-1600566752355-35792bedcfea?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80',
-      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1474&q=80',
-    ],
-    'features': ['حديقة خارجية', 'مسبح خاص', 'موقف سيارات', 'غرفة خادمة', 'مصعد', 'مطبخ مجهز'],
-  };
+
+ Map<String,dynamic>? seller_profile;
+  bool isLoading = true;
+
+
+late LatLng position;
+
+@override
+void initState() {
+  super.initState();
+
+  position = LatLng(
+    widget.property.location_coordinate.latitude,
+    widget.property.location_coordinate.longitude,
+  );
+
+  _loadSeller();
+}
+
+ 
+  Future<void> _loadSeller() async {
+        final doc = await FirebaseFirestore.instance
+        .collection('profile')
+        .doc(widget.property.seller_id)
+        .get();
+
+    setState(() {
+      seller_profile = doc.data();
+      isLoading = false;
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
+      body:
+      SafeArea(
+        child:
+       CustomScrollView(
         slivers: [
-          SliverAppBar(
-            expandedHeight: 0,
-            floating: true,
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leading: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: CircleAvatar(
-                backgroundColor: Colors.white.withOpacity(0.9),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black87),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(0.9),
-                  child: IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? Colors.red : Colors.black87,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        isFavorite = !isFavorite;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(0.9),
-                  child: IconButton(
-                    icon: const Icon(Icons.share, color: Colors.black87),
-                    onPressed: () {
-                      // Share property functionality
-                    },
-                  ),
-                ),
-              ),
-            ],
+       SliverAppBar(
+  pinned: true, // يجعل الـ AppBar ثابتًا في الأعلى أثناء التمرير
+  floating: true, // يسمح له بالظهور عند التمرير للأعلى
+  snap: true, // يتيح له "القفز" عند التمرير للأعلى إذا استخدم floating
+  expandedHeight: 0, // لا حاجة لتوسيع
+  backgroundColor: Colors.transparent, // خلفية شفافة
+  elevation: 0, // بدون ظل
+  leading: Padding(
+    padding: const EdgeInsets.all(8.0),
+    child: CircleAvatar(
+      backgroundColor: Colors.white.withOpacity(0.6), // نصف شفاف
+      child: IconButton(
+        icon: const Icon(Icons.close, color: Colors.black87),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+    ),
+  ),
+  actions: [
+    Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: CircleAvatar(
+        backgroundColor: Colors.white.withOpacity(0.6),
+        child: IconButton(
+          icon: Icon(
+            isFavorite ? Icons.favorite : Icons.favorite_border,
+            color: isFavorite ? Colors.red : Colors.black87,
           ),
+          onPressed: () {
+            setState(() {
+              isFavorite = !isFavorite;
+            });
+          },
+        ),
+      ),
+    ),
+    Padding(
+  padding: const EdgeInsets.all(8.0),
+  child: CircleAvatar(
+    backgroundColor: Colors.white.withOpacity(0.6),
+    child: IconButton(
+      icon: const Icon(Icons.share, color: Colors.black87),
+     onPressed: () {
+    final String shareText = '''
+مرحبًا! هذا العقار متاح في تطبيق مسكن !
 
-          // 2. Main Content
+
+الاسم: ${widget.property.title}
+النوع: ${widget.property.type}
+نوع البيع: ${widget.property.purchaseType}
+المبلغ: ${widget.property.price} ريال
+الموقع: ${widget.property.location_name}
+عدد الغرف: ${widget.property.rooms}
+عدد الحمامات: ${widget.property.bathrooms}
+عمر العقار: ${widget.property.propertyAge}
+المساحة: ${widget.property.area} م²
+
+للمزيد من التفاصيل، حمل تطبيق مسكن!
+''';
+
+    final RenderBox box = context.findRenderObject() as RenderBox;
+
+    Share.share(
+      shareText,
+      sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
+    );
+      },
+    ),
+  ),
+),
+  ],
+),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image Carousel
                 Stack(
                   children: [
                     CarouselSlider(
@@ -126,7 +156,7 @@ final CarouselSliderController _carouselController = CarouselSliderController();
                         },
                         autoPlay: false,
                       ),
-                      items: propertyData['images'].map<Widget>((imageUrl) {
+                      items: widget.property.images.map<Widget>((imageUrl) {
                         return Builder(
                           builder: (BuildContext context) {
                             return Container(
@@ -153,7 +183,7 @@ final CarouselSliderController _carouselController = CarouselSliderController();
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Text(
-                          '${_currentImageIndex + 1}/${propertyData['images'].length}',
+                          '${_currentImageIndex + 1}/${widget.property.images.length}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -193,115 +223,129 @@ final CarouselSliderController _carouselController = CarouselSliderController();
                   ],
                 ),
 
-                // Property title and price
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              propertyData['title'],
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${_formatNumber(propertyData['price'])} ريال',
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A73E8),
-                                ),
-                              ),
-                              Container(
-                                margin: const EdgeInsets.only(top: 4),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1A73E8).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  propertyData['purchaseType'],
-                                  style: const TextStyle(
-                                    color: Color(0xFF1A73E8),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    Row(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    // عنوان العقار
+    Expanded(
+      child: Padding(
+        padding: const EdgeInsets.only(right: 8.0),
+        child: Text(
+          widget.property.title,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+            height: 1.3,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ),
 
-                      const SizedBox(height: 12),
+    // السعر ونوع البيع
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // السعر
+        Text(
+          '${widget.property.price} ريال',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A73E8),
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        // نوع البيع (شراء / إيجار)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A73E8).withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            widget.property.purchaseType.arabic,
+            style: const TextStyle(
+              color: Color(0xFF1A73E8),
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    ),
+  ],
+),
+
+                       SizedBox(height: 12.h),
 
                       // Location
                       Row(
                         children: [
                           const Icon(Icons.location_on, color: Colors.grey, size: 18),
-                          const SizedBox(width: 6),
+                           SizedBox(width: 6.w),
                           Expanded(
                             child: Text(
-                              propertyData['location']['address'],
+                              widget.property.location_name,
                               style: TextStyle(
                                 color: Colors.grey[700],
-                                fontSize: 14,
+                                fontSize: 14.sp,
                               ),
                             ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 24),
+                       SizedBox(height: 24.h),
 
                       // Key Features
                       _buildKeyFeatures(),
 
-                      const SizedBox(height: 24),
+                       SizedBox(height: 24.h),
 
                       // Map view
                       _buildMapView(),
 
-                      const SizedBox(height: 24),
+                     SizedBox(height: 24.h),
 
                       // Description
-                      const Text(
+                       Text(
                         'وصف العقار',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8.h),
                       Text(
-                        propertyData['description'],
+                        widget.property.description,
                         style: TextStyle(
                           height: 1.5,
                           color: Colors.grey[700],
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                       SizedBox(height: 24.h),
 
                  
                       _buildLicenseDetails(),
 
-                      const SizedBox(height: 24),
+                       SizedBox(height: 24.h),
 
                       // Seller details
                       _buildSellerDetails(),
 
-                      const SizedBox(height: 100), // Extra space for bottom navigation bar
+                       SizedBox(height:100.h), 
                     ],
                   ),
                 ),
@@ -310,7 +354,7 @@ final CarouselSliderController _carouselController = CarouselSliderController();
           ),
         ],
       ),
-      // Contact action buttons
+      ),
       bottomSheet: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -322,52 +366,52 @@ final CarouselSliderController _carouselController = CarouselSliderController();
             ),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    side: const BorderSide(color: Color(0xFF1A73E8)),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.call, size: 18),
-                  label: const Text('اتصال'),
-                  onPressed: () async {
-                    final Uri uri = Uri(
-                      scheme: 'tel',
-                      path: propertyData['seller']['phone'],
-                    );
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri);
-                    }
-                  },
-                ),
+        padding:  EdgeInsets.symmetric(horizontal: 25.h, vertical: 12.w),
+        child: 
+         isLoading 
+  ? const ButtonsShimmer()
+  : Row(
+      children: [
+        Expanded(
+          child: ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF25D366), 
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: const Color(0xFF1A73E8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.message, size: 18),
-                  label: const Text('مراسلة'),
-                  onPressed: () {
-                    // Open chat with seller
-                  },
-                ),
-              ),
-            ],
+            ),
+            icon: const HugeIcon(icon: HugeIcons.strokeRoundedWhatsapp, size: 18),
+            label: const Text('واتساب'),
+            onPressed: () {
+              final phoneNumber = seller_profile?['phone'] ?? '';
+              launchUrl(Uri.parse('https://wa.me/$phoneNumber'));
+            },
           ),
         ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.black87,
+              side: BorderSide(color: Colors.grey[300]!),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: const Icon(Icons.phone, size: 18),
+            label: const Text('اتصال'),
+            onPressed: () {
+              final phoneNumber = seller_profile?['phone'] ?? '';
+              launchUrl(Uri.parse('tel:$phoneNumber'));
+            },
+          ),
+        ),
+      ],
+    )
+      
       ),
     );
   }
@@ -385,9 +429,9 @@ final CarouselSliderController _carouselController = CarouselSliderController();
           Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Expanded(child: _buildKeyFeatureItem(Icons.king_bed_outlined, '${propertyData['rooms']} غرف')),
-          Expanded(child: _buildKeyFeatureItem(Icons.bathtub_outlined, '${propertyData['bathrooms']} حمامات')),
-          Expanded(child: _buildKeyFeatureItem(Icons.square_foot_outlined, '${propertyData['area']} م²')),
+          Expanded(child: _buildKeyFeatureItem(Icons.king_bed_outlined, '${widget.property.rooms} غرف')),
+          Expanded(child: _buildKeyFeatureItem(Icons.bathtub_outlined, '${widget.property.bathrooms} حمامات')),
+          Expanded(child: _buildKeyFeatureItem(Icons.square_foot_outlined, '${widget.property.area} م²')),
         ],
           ),
           const SizedBox(height: 16),
@@ -395,9 +439,9 @@ final CarouselSliderController _carouselController = CarouselSliderController();
           Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          Expanded(child: _buildKeyFeatureItem(Icons.straighten_outlined, '${propertyData['streetWidth']} م')),
-          Expanded(child: _buildKeyFeatureItem(Icons.calendar_month, '${propertyData['propertyAge']}')),
-          Expanded(child: _buildKeyFeatureItem(Icons.category, '${propertyData['type']}')),
+          Expanded(child: _buildKeyFeatureItem(Icons.straighten_outlined, '${widget.property.streetWidth} م')),
+          Expanded(child: _buildKeyFeatureItem(Icons.calendar_month, '${widget.property.propertyAge}')),
+          Expanded(child: _buildKeyFeatureItem(Icons.category, '${widget.property.type}')),
         ],
           ),
         ],
@@ -405,13 +449,6 @@ final CarouselSliderController _carouselController = CarouselSliderController();
     );
   }
 
-  Widget _buildDivider() {
-    return Container(
-      height: 30,
-      width: 1,
-      color: Colors.grey[300],
-    );
-  }
 
   Widget _buildKeyFeatureItem(IconData icon, String text) {
     return Column(
@@ -448,20 +485,22 @@ final CarouselSliderController _carouselController = CarouselSliderController();
               border: Border.all(color: Colors.grey[200]!),
             ),
             child: GoogleMap(
+                key: ValueKey('property_map_${widget.property.uid}'),
               initialCameraPosition: CameraPosition(
-                target: propertyData['location']['coordinates'],
+                target: position,
                 zoom: 15,
               ),
               markers: {
                 Marker(
                   markerId: const MarkerId('property'),
-                  position: propertyData['location']['coordinates'],
-                  infoWindow: InfoWindow(title: propertyData['title']),
+                  position:position,
+                  infoWindow: InfoWindow(title: widget.property.title),
                 ),
               },
               myLocationEnabled: false,
               zoomControlsEnabled: false,
               mapToolbarEnabled: false,
+
             ),
           ),
         ),
@@ -509,7 +548,7 @@ final CarouselSliderController _carouselController = CarouselSliderController();
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      propertyData['licenseNumber'],
+                     widget.property.licence_number,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                       ),
@@ -524,18 +563,81 @@ final CarouselSliderController _carouselController = CarouselSliderController();
       ),
     );
   }
+  
 Widget _buildSellerDetails() {
-  // Get first two letters of seller's name for the avatar
-  final String sellerInitials = propertyData['seller']['name']
+  if (isLoading || seller_profile == null) {
+    // عرض shimmer loader أثناء التحميل
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 24,
+                  backgroundColor: Colors.white,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 16,
+                        width: 100,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 12,
+                        width: 60,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(height: 12, color: Colors.white, margin: const EdgeInsets.symmetric(vertical: 4)),
+            Container(height: 12, color: Colors.white, margin: const EdgeInsets.symmetric(vertical: 4)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(height: 40, color: Colors.white),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Container(height: 40, color: Colors.white),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // إذا البيانات جاهزة، نرجع نفس Widget الأصلي
+  final String sellerInitials = (seller_profile?['name'] ?? 'مستخدم')
       .split(' ')
       .take(2)
       .map((e) => e.isNotEmpty ? e[0] : '')
       .join('')
       .toUpperCase();
       
-  // Check if the user is a seller
-  final bool isSeller = propertyData['seller']['type'] == 'seller';
-  
+  final bool isSeller = seller_profile?['rank'] == 'seller';
+
   return Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
@@ -544,7 +646,6 @@ Widget _buildSellerDetails() {
       border: Border.all(color: Colors.grey[200]!),
     ),
     child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
@@ -567,7 +668,7 @@ Widget _buildSellerDetails() {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    propertyData['seller']['name'],
+                    seller_profile?['name'] ?? 'مستخدم',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -601,7 +702,6 @@ Widget _buildSellerDetails() {
           ],
         ),
         
-        // Show license details and contact options only for sellers
         if (isSeller) ...[
           const SizedBox(height: 16),
           const Divider(),
@@ -622,8 +722,8 @@ Widget _buildSellerDetails() {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'RE-5423789',
+                    Text(
+                      seller_profile?['license_number'] ,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -644,8 +744,8 @@ Widget _buildSellerDetails() {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      '15/08/2024',
+                     Text(
+                      seller_profile?['licence_expired'] ,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -659,7 +759,6 @@ Widget _buildSellerDetails() {
           
           const SizedBox(height: 16),
           
-          // Contact options
           Row(
             children: [
               Expanded(
@@ -675,7 +774,7 @@ Widget _buildSellerDetails() {
                   icon: const HugeIcon(icon: HugeIcons.strokeRoundedWhatsapp, size: 18),
                   label: const Text('واتساب'),
                   onPressed: () {
-                    final phoneNumber = propertyData['seller']['phone'];
+                    final phoneNumber = seller_profile?['phone'] ?? '';
                     launchUrl(Uri.parse('https://wa.me/$phoneNumber'));
                   },
                 ),
@@ -694,8 +793,7 @@ Widget _buildSellerDetails() {
                   icon: const Icon(Icons.phone, size: 18),
                   label: const Text('اتصال'),
                   onPressed: () {
-                    // Make a call to the seller's phone number
-                    final phoneNumber = propertyData['seller']['phone'];
+                    final phoneNumber = seller_profile?['phone'] ?? '';
                     launchUrl(Uri.parse('tel:$phoneNumber'));
                   },
                 ),
@@ -717,7 +815,7 @@ Widget _buildSellerDetails() {
                   padding: EdgeInsets.zero,
                   icon: const HugeIcon(icon: HugeIcons.strokeRoundedTwitter, color: Colors.white, size: 18),
                   onPressed: () {
-                    launchUrl(Uri.parse('https://twitter.com/user'));
+                    launchUrl(Uri.parse('https://twitter.com/${seller_profile?['x']}'));
                   },
                 ),
               ),
@@ -729,7 +827,7 @@ Widget _buildSellerDetails() {
                   padding: EdgeInsets.zero,
                   icon: const HugeIcon(icon: HugeIcons.strokeRoundedInstagram, color: Colors.white, size: 18),
                   onPressed: () {
-                    launchUrl(Uri.parse('https://instagram.com/user'));
+                    launchUrl(Uri.parse('https://instagram.com/${seller_profile?['instagram']}'));
                   },
                 ),
               ),
@@ -741,28 +839,50 @@ Widget _buildSellerDetails() {
                   padding: EdgeInsets.zero,
                   icon: const HugeIcon(icon: HugeIcons.strokeRoundedSnapchat, color: Colors.black, size: 18),
                   onPressed: () {
-                    launchUrl(Uri.parse('https://snapchat.com/add/user'));
+                    launchUrl(Uri.parse('https://snapchat.com/add/${seller_profile?['snapchat']}'));
                   },
                 ),
               ),
             
         ],)
-      
+    
       ],
-    ),
+    )
+  
   );
 }
-  String _formatNumber(int number) {
-    final String numberStr = number.toString();
-    final StringBuffer result = StringBuffer();
-    
-    for (int i = 0; i < numberStr.length; i++) {
-      if (i > 0 && (numberStr.length - i) % 3 == 0) {
-        result.write(',');
-      }
-      result.write(numberStr[i]);
-    }
-    
-    return result.toString();
+}
+class ButtonsShimmer extends StatelessWidget {
+  const ButtonsShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

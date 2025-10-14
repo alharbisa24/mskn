@@ -1,78 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mskn/home/favorite.dart';
-// Note: You must ensure Firebase is initialized in your main() function
-// E.g., await Firebase.initializeApp();
+import 'package:mskn/home/models/property.dart';
+import 'package:mskn/home/property_details.dart';
 
-// -----------------------------------------------------------------------------
-// 0. PROPERTY MODEL (UPDATED)
-// -----------------------------------------------------------------------------
 
-/// 🏡 Property Model
-class Property {
-  final String title;
-  final String location;
-  final String price;
-  final String image;
-  final String type; // NEW: Added property type
 
-  Property({
-    required this.title,
-    required this.location,
-    required this.price,
-    required this.image,
-    required this.type,
-  });
-
-  // Helper to get price as a double for filtering
-  double get priceValue => double.tryParse(price.replaceAll(',', '')) ?? 0.0;
-
-  /// 🔥 Factory constructor to create a Property from a Firestore DocumentSnapshot
-  factory Property.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
-
-    // Extract the first image URL from the 'images' array field
-    final List<dynamic> imagesList =
-        data['images'] is List ? data['images'] : [];
-    final String imageUrl = imagesList.isNotEmpty && imagesList[0] is String
-        ? imagesList[0]
-        : 'https://via.placeholder.com/300x400.png?text=No+Image'; // Fallback image
-
-    return Property(
-      // Mapping the fields based on your Firestore structure
-      title: data['title'] ?? 'عنوان غير متوفر',
-      location: data['location_name'] ?? 'موقع غير متوفر',
-      price: data['price'] ?? '0', // Price as a string
-      type: data['type'] ?? 'غير مصنف', // The Arabic property type
-      image: imageUrl,
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// 1. FIREBASE SERVICE (NEW)
-// -----------------------------------------------------------------------------
-
-/// ☁️ Service to handle fetching properties from Firestore
 class FirestoreService {
-  // Assuming your collection name is 'poroperty' based on the screenshot
-  static const String collectionName = 'poroperty';
+  static const String collectionName = 'property';
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Returns a stream of all properties
   Stream<List<Property>> getProperties() {
-    return _db.collection(collectionName).snapshots().map((snapshot) {
-      // Map each document snapshot to a Property object
+    return _db.collection(collectionName).orderBy('created_at', descending: true).snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => Property.fromFirestore(doc)).toList();
     });
   }
 }
 
-// -----------------------------------------------------------------------------
-// 2. UTILITY FUNCTIONS & DUMMY DATA (UPDATED)
-// -----------------------------------------------------------------------------
 
-/// 📝 دالة مساعدة لتوحيد وتسهيل مطابقة الأحرف العربية
 String _normalizeArabic(String text) {
   String normalized = text.trim().toLowerCase();
   normalized =
@@ -84,15 +30,7 @@ String _normalizeArabic(String text) {
   return normalized;
 }
 
-// Removed dummyProperties list. Data will come from Firestore.
 
-// ... (Previous imports and Property model remain unchanged)
-
-// -----------------------------------------------------------------------------
-// 3. MAIN PAGE & WIDGETS (UPDATED: _showPriceFilterDialog)
-// -----------------------------------------------------------------------------
-
-/// 🏠 Main Home Page
 class HomeMainPage extends StatefulWidget {
   const HomeMainPage({super.key});
 
@@ -104,7 +42,6 @@ class _HomeMainPageState extends State<HomeMainPage> {
   String selectedTag = 'عرض الكل';
   String searchQuery = '';
 
-  // Max price is 50,000,000 for calculation
   RangeValues priceRange = const RangeValues(0, 50000000);
   bool isFilterActive = false;
 
@@ -118,24 +55,19 @@ class _HomeMainPageState extends State<HomeMainPage> {
     setState(() => searchQuery = query.trim());
   }
 
-  /// 💰 Handle Price Filter - UPDATED to handle cancellation
   Future<void> _showPriceFilterDialog() async {
-    // The dialog now returns RangeValues on success, or null on cancel.
     final result = await showDialog<RangeValues>(
       context: context,
       builder: (context) => PriceFilterDialog(initialRange: priceRange),
     );
 
     if (result != null) {
-      // User pressed 'تطبيق الفلتر' (Apply Filter)
       setState(() {
         priceRange = result;
-        // Check if filter is active (not the default range)
         isFilterActive = result.start > 0 || result.end < 50000000;
       });
     } else {
-      // User pressed 'إلغاء' (Cancel) OR dismissed the dialog
-      // Reset the filter state to default
+
       setState(() {
         priceRange = const RangeValues(0, 50000000);
         isFilterActive = false;
@@ -157,12 +89,12 @@ class _HomeMainPageState extends State<HomeMainPage> {
         children: [
           // Custom App Bar / Header - START
           Padding(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16.0, vertical: 10.0), // Reduced horizontal padding
+            padding: EdgeInsets.symmetric(
+                horizontal: 16.0.h, vertical: 10.0.w), 
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Right side: 'مسكن'
                 const Text(
                   'مسكن',
                   style: TextStyle(
@@ -172,17 +104,16 @@ class _HomeMainPageState extends State<HomeMainPage> {
                   ),
                   textDirection: TextDirection.rtl,
                 ),
-                const Spacer(flex: 2), // Gives more space to the center
-                // Center: Location
+
+                const Spacer(flex: 1), 
                 const Icon(Icons.location_on_outlined,
                     size: 18, color: Colors.black),
                 const SizedBox(width: 4),
                 const Text('الرياض',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const Spacer(flex: 1),
-                // Left side: Icons (Saved and Notification)
                 IconButton(
-                  icon: const Icon(Icons.bookmark_border),
+                  icon: const Icon(Icons.favorite_border),
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -191,10 +122,7 @@ class _HomeMainPageState extends State<HomeMainPage> {
                     );
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.notifications_none),
-                  onPressed: () {},
-                ),
+      
               ],
             ),
           ),
@@ -228,7 +156,6 @@ class _HomeMainPageState extends State<HomeMainPage> {
                   const SizedBox(height: 10),
                   PropertyTagsRow(onTagSelected: _handleTagSelection),
                   const SizedBox(height: 20),
-                  // 'عقارات جديدة' (New Properties) title aligned to the right
                   const Align(
                     alignment: Alignment.centerRight,
                     child: Text(
@@ -257,16 +184,13 @@ class _HomeMainPageState extends State<HomeMainPage> {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 4. PROPERTY GRID (UNCHANGED)
-// -----------------------------------------------------------------------------
 
-/// 🧱 Property Grid View (Updated to use StreamBuilder)
 class PropertyGrid extends StatelessWidget {
   final String selectedTag;
   final String searchQuery;
   final RangeValues priceRange;
   final FirestoreService _firestoreService = FirestoreService();
+  
 
   PropertyGrid({
     super.key,
@@ -275,11 +199,9 @@ class PropertyGrid extends StatelessWidget {
     required this.priceRange,
   });
 
-  /// Helper function to apply all filters to the list fetched from Firestore
   List<Property> _applyFilters(List<Property> properties) {
     final normalizedQuery = _normalizeArabic(searchQuery);
 
-    // Map the Arabic Tag (from the UI buttons) to the corresponding Arabic Type (from Firestore document 'type')
     final Map<String, List<String>> tagToTypeMap = {
       'شقق': ['شقة', 'شقق'],
       'فلل': ['فلة', 'فيلا', 'فلل'],
@@ -289,7 +211,7 @@ class PropertyGrid extends StatelessWidget {
 
     return properties.where((property) {
       final normalizedTitle = _normalizeArabic(property.title);
-      final normalizedLocation = _normalizeArabic(property.location);
+      final normalizedLocation = _normalizeArabic(property.location_name);
       final normalizedType = _normalizeArabic(property.type);
 
       // 1. Tag Filter
@@ -321,7 +243,6 @@ class PropertyGrid extends StatelessWidget {
       stream: _firestoreService.getProperties(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Show loading indicator while fetching data
           return const Center(
               child: Padding(
             padding: EdgeInsets.all(40.0),
@@ -341,7 +262,6 @@ class PropertyGrid extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          // Show empty state
           return const Center(
               child: Padding(
             padding: EdgeInsets.all(20.0),
@@ -370,7 +290,6 @@ class PropertyGrid extends StatelessWidget {
         }
 
         return GridView.builder(
-          // Ensure it scrolls naturally with the SingleChildScrollView
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: filteredProperties.length,
@@ -455,7 +374,6 @@ class _PriceFilterDialogState extends State<PriceFilterDialog> {
       ),
       actions: [
         TextButton(
-          // 🛑 UPDATED: Pop the dialog and return null to signal cancellation
           onPressed: () => Navigator.of(context).pop(null),
           child: const Text('إلغاء'),
         ),
@@ -469,9 +387,7 @@ class _PriceFilterDialogState extends State<PriceFilterDialog> {
   }
 }
 
-// ... (Rest of the widgets: FilterButton, SearchBar, PropertyTagsRow, PropertyCard, BottomNavigationBarPlaceholder, etc., remain unchanged)
-// The rest of the code is unchanged from your last submission.
-/// 💰 Filter Button (Unchanged)
+
 class FilterButton extends StatelessWidget {
   final VoidCallback onPressed;
   final bool isActive;
@@ -573,11 +489,7 @@ class _PropertyTagsRowState extends State<PropertyTagsRow> {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 6. PROPERTY CARD (UPDATED FOR NETWORK IMAGE)
-// -----------------------------------------------------------------------------
 
-/// 🖼️ Property Card UI (With Animation)
 class PropertyCard extends StatefulWidget {
   final Property property;
   const PropertyCard({super.key, required this.property});
@@ -587,25 +499,6 @@ class PropertyCard extends StatefulWidget {
 }
 
 class _PropertyCardState extends State<PropertyCard> {
-  bool _isPressed = false;
-
-  void _handleTapDown(TapDownDetails details) {
-    setState(() {
-      _isPressed = true;
-    });
-  }
-
-  void _handleTapUp(TapUpDetails details) {
-    setState(() {
-      _isPressed = false;
-    });
-  }
-
-  void _handleTapCancel() {
-    setState(() {
-      _isPressed = false;
-    });
-  }
 
   /// ✅ Format price with commas (e.g. 1000000 → 1,000,000)
   String formatPrice(String price) {
@@ -622,27 +515,71 @@ class _PropertyCardState extends State<PropertyCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
+  onTap: () {
+showModalBottomSheet(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent, // ضروري لخلفية شفافة
+  builder: (context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // يلتقط الضغط في أي مكان فارغ
+      onTap: () => Navigator.of(context).pop(), // يغلق الـ bottom sheet
+      child: Stack(
+        children: [
+          // المحتوى الشفاف بالخلف (النقر عليه يغلق)
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(0.3)), // يعطي ظل خفيف
+          ),
+
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(25),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(25)),
+                child: GestureDetector(
+                  onTap: () {}, // يمنع الإغلاق عند النقر داخل المحتوى
+                  child: FractionallySizedBox(
+                    heightFactor: 0.9,
+                    child: PropertyDetails(
+                                    property: widget.property,
+
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+);
+
+
+},
+
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-        transform: Matrix4.identity()..scale(_isPressed ? 0.98 : 1.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(_isPressed ? 0.2 : 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+      
         ),
         child: Card(
           clipBehavior: Clip.hardEdge,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+          color: Colors.grey.shade300, 
+          width: 1, 
+      ),
           ),
           elevation: 0,
           color: Colors.white,
@@ -673,7 +610,10 @@ class _PropertyCardState extends State<PropertyCard> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: EdgeInsets.symmetric(
+                  vertical: 10.w,
+                  horizontal: 10.h
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -684,7 +624,7 @@ class _PropertyCardState extends State<PropertyCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.property.location,
+                      widget.property.location_name,
                       style: const TextStyle(color: Colors.grey),
                       textAlign: TextAlign.right,
                     ),

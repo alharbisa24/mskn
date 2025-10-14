@@ -7,7 +7,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mskn/home_page.dart';
 import 'package:mskn/register_menu.dart';
-import 'package:mskn/seller_profile.dart';
 import 'package:mskn/login.dart';
 
 void main() async {
@@ -18,6 +17,7 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
+
     await ScreenUtil.ensureScreenSize();
 
     await dotenv.load(fileName: ".env");

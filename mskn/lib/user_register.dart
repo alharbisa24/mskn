@@ -257,7 +257,6 @@ class _BuyerRegisterState extends State<BuyerRegister>
 
                               final uid = credential.user!.uid;
 
-                              // تخزين بيانات المشتري في profile
                               await FirebaseFirestore.instance
                                   .collection('profile')
                                   .doc(uid)
@@ -267,7 +266,7 @@ class _BuyerRegisterState extends State<BuyerRegister>
                                 'license_number': '',
                                 'licence_created': '',
                                 'licence_expired': '',
-                                'twitter': '',
+                                'x': '',
                                 'instagram': '',
                                 'snapchat': '',
                                 'rank': 'buyer',

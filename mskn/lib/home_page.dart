@@ -5,6 +5,7 @@ import 'package:mskn/home/add.dart';
 import 'package:mskn/home/home.dart';
 import 'package:mskn/home/map.dart';
 import 'package:mskn/home/more.dart';
+import 'package:mskn/home/property_details.dart';
 import 'package:mskn/main.dart';
 import 'dart:async';
 
