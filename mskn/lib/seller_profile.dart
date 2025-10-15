@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'edit_seller_profile.dart';
 
 class SellerProfile extends StatelessWidget {
   const SellerProfile({super.key});
@@ -74,13 +75,36 @@ class SellerProfile extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      _textOrNA(data['name']),
-                                      style: const TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF111827),
-                                      ),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            _textOrNA(data['name']),
+                                            style: const TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF111827),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          tooltip: 'تعديل',
+                                          icon: const Icon(Icons.edit,
+                                              size: 20, color: Colors.blue),
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    EditSellerProfileScreen(
+                                                        initialData: data),
+                                              ),
+                                            );
+                                          },
+                                        )
+                                      ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
@@ -140,7 +164,7 @@ class SellerProfile extends StatelessWidget {
                           _InfoTile(
                             icon: Icons.alternate_email,
                             label: 'تويتر',
-                            value: _textOrNA(data['twitter']),
+                            value: _textOrNA(data['x']),
                           ),
                           _InfoTile(
                             icon: Icons.camera_alt_outlined,
@@ -165,19 +189,7 @@ class SellerProfile extends StatelessWidget {
   Widget _buildTopBar(BuildContext context, {required String title}) {
     return Row(
       children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_ios, color: Colors.grey[700], size: 18),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ),
+     
         const SizedBox(width: 12),
         Expanded(
           child: Text(

@@ -289,9 +289,10 @@ class _SellerRegisterState extends State<SellerRegister>
                                       licence_created.text.trim(),
                                   'licence_expired':
                                       licence_expired.text.trim(),
-                                  'twitter': '',
+                                  'x': '',
                                   'instagram': '',
                                   'snapchat': '',
+                                  "rank":"seller",
                                   'created_at': FieldValue.serverTimestamp(),
                                 }, SetOptions(merge: true));
 

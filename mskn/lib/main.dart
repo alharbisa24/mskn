@@ -1,12 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mskn/firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mskn/home_page.dart';
 import 'package:mskn/register_menu.dart';
-import 'package:mskn/seller_profile.dart';
 import 'package:mskn/login.dart';
 
 void main() async {
@@ -17,6 +17,10 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
+
+    await ScreenUtil.ensureScreenSize();
+
+    await dotenv.load(fileName: ".env");
   
   runApp(const MyApp());
 }
@@ -48,6 +52,7 @@ class MyApp extends StatelessWidget {
       ),
       home: _handleAppStartup(),
       builder: (context, child) {
+        ScreenUtil.init(context);
         return Directionality(
           textDirection: TextDirection.rtl,
           child: child!,
