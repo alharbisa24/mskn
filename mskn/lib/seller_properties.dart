@@ -154,16 +154,8 @@ class SellerPropertiesPage extends StatelessWidget {
                             children: [
                               if (imageUrls.isNotEmpty)
                                 _buildImagesRow(imageUrls),
-                              if (subtitle.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                Text(
-                                  subtitle,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF6B7280),
-                                  ),
-                                ),
-                              ],
+                              const SizedBox(height: 12),
+                              _buildDetailsSection(context, data),
                               const SizedBox(height: 12),
                               Align(
                                 alignment: AlignmentDirectional.centerEnd,
@@ -260,10 +252,106 @@ class SellerPropertiesPage extends StatelessWidget {
     final String locationName = _stringOrEmpty(data['location_name']);
     if (locationName.isNotEmpty) parts.add('الموقع: $locationName');
 
-    final String createdAt = _formatCreatedAt(data['created_at']);
-    if (createdAt.isNotEmpty) parts.add('أُنشئ: $createdAt');
+
 
     return parts.join(' • ');
+  }
+
+  Widget _buildDetailsSection(BuildContext context, Map<String, dynamic> data) {
+    final String type = _stringOrEmpty(data['type']);
+    final String rooms = _stringOrEmpty(data['rooms']);
+    final String bathrooms = _stringOrEmpty(data['bathrooms']);
+    final String area = _stringOrEmpty(data['area']);
+    final String streetWidth = _stringOrEmpty(data['streetWidth']);
+    final String propertyAge = _stringOrEmpty(data['propertyAge']);
+    final String locationName = _stringOrEmpty(data['location_name']);
+
+
+    final List<Widget> items = [];
+    if (type.isNotEmpty) items.add(_detailChip(Icons.category_outlined, 'النوع', type));
+    if (rooms.isNotEmpty) items.add(_detailChip(Icons.meeting_room_outlined, 'الغرف', rooms));
+    if (bathrooms.isNotEmpty) items.add(_detailChip(Icons.bathtub_outlined, 'الحمامات', bathrooms));
+    if (area.isNotEmpty) items.add(_detailChip(Icons.square_foot, 'المساحة', '$area م²'));
+    if (streetWidth.isNotEmpty) items.add(_detailChip(Icons.straighten, 'عرض الشارع', '$streetWidth م'));
+    if (propertyAge.isNotEmpty) items.add(_detailChip(Icons.schedule_outlined, 'عمر العقار', propertyAge));
+    if (locationName.isNotEmpty) {
+      items.add(
+        _detailChip(
+          Icons.place_outlined,
+          'الموقع',
+          locationName,
+          // Constrain width so it wraps to approximately two lines
+          maxWidth: MediaQuery.of(context).size.width * 0.6,
+        ),
+      );
+    }
+  
+
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      textDirection: TextDirection.rtl,
+      alignment: WrapAlignment.start,
+      runAlignment: WrapAlignment.start,
+      children: items,
+    );
+  }
+
+  Widget _detailChip(IconData icon, String label, String value, {double? maxWidth}) {
+    final child = Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        textDirection: TextDirection.rtl,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                label,
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 2),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: maxWidth ?? double.infinity,
+                ),
+                child: Text(
+                  value,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF111827),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  softWrap: true,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 8),
+          Icon(icon, size: 18, color: const Color(0xFF6B7280)),
+        ],
+      ),
+    );
+
+    if (maxWidth != null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth + 56), // extra for icon/padding
+        child: child,
+      );
+    }
+    return child;
   }
 
   String _stringOrEmpty(dynamic value) {
