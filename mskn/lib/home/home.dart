@@ -87,7 +87,6 @@ class _HomeMainPageState extends State<HomeMainPage> {
       ),
       body: Column(
         children: [
-          // Custom App Bar / Header - START
           Padding(
             padding: EdgeInsets.symmetric(
                 horizontal: 16.0.h, vertical: 10.0.w), 
@@ -95,14 +94,10 @@ class _HomeMainPageState extends State<HomeMainPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Text(
-                  'مسكن',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                  textDirection: TextDirection.rtl,
+                Image.asset(
+                  'images/logo.png',
+                  width: 50.w,
+
                 ),
 
                 const Spacer(flex: 1), 
@@ -176,8 +171,6 @@ class _HomeMainPageState extends State<HomeMainPage> {
               ),
             ),
           ),
-          // Placeholder for bottom navigation
-          BottomNavigationBarPlaceholder(),
         ],
       ),
     );
@@ -204,7 +197,7 @@ class PropertyGrid extends StatelessWidget {
 
     final Map<String, List<String>> tagToTypeMap = {
       'شقق': ['شقة', 'شقق'],
-      'فلل': ['فلة', 'فيلا', 'فلل'],
+      'فلل': ['فلة', 'فلل'],
       'بيوت': ['بيت', 'بيوت'],
       'أراضي': ['أرض', 'اراضي'],
     };
@@ -341,6 +334,7 @@ class _PriceFilterDialogState extends State<PriceFilterDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      backgroundColor: Colors.white,
       title: const Text('تحديد نطاق السعر', textAlign: TextAlign.right),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -449,7 +443,6 @@ class PropertyTagsRow extends StatefulWidget {
   @override
   State<PropertyTagsRow> createState() => _PropertyTagsRowState();
 }
-
 class _PropertyTagsRowState extends State<PropertyTagsRow> {
   final List<String> tags = const ['عرض الكل', 'فلل', 'شقق', 'أراضي', 'بيوت'];
   String selectedTag = 'عرض الكل';
@@ -458,36 +451,39 @@ class _PropertyTagsRowState extends State<PropertyTagsRow> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      reverse: true, // Scroll from right-to-left
-      child: Row(
-        children: tags.reversed.map((tag) {
-          final bool isSelected = tag == selectedTag;
-          return Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: ActionChip(
-              label: Text(
-                tag,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.black,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Row(
+          children: tags.map((tag) { 
+            final bool isSelected = tag == selectedTag;
+            return Padding(
+              padding:EdgeInsets.only(right: 10.0.w),
+              child: ActionChip(
+                label: Text(
+                  tag,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
+                backgroundColor: isSelected ? Colors.blue : Colors.grey.shade200,
+                onPressed: () {
+                  setState(() => selectedTag = tag);
+                  widget.onTagSelected(tag);
+                },
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
-              backgroundColor: isSelected ? Colors.blue : Colors.grey.shade200,
-              onPressed: () {
-                setState(() => selectedTag = tag);
-                widget.onTagSelected(tag);
-              },
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-          );
-        }).toList(),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
 }
+
 
 
 class PropertyCard extends StatefulWidget {
@@ -649,73 +645,3 @@ showModalBottomSheet(
   }
 }
 
-// -----------------------------------------------------------------------------
-// 7. BOTTOM NAVIGATION BAR (UNCHANGED)
-// -----------------------------------------------------------------------------
-
-/// 📱 Bottom Navigation Bar Placeholder
-class BottomNavigationBarPlaceholder extends StatelessWidget {
-  const BottomNavigationBarPlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    // Note: This is a placeholder. You'd typically use a real BottomNavigationBar
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavBarItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool isSelected;
-
-  const _NavBarItem(
-      {required this.icon, required this.label, required this.isSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isSelected ? Colors.blue : Colors.grey,
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: isSelected ? Colors.blue : Colors.grey,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AddButton extends StatelessWidget {
-  const _AddButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.blue,
-      ),
-      padding: const EdgeInsets.all(8.0),
-      child: const Icon(Icons.add, color: Colors.white, size: 24),
-    );
-  }
-}

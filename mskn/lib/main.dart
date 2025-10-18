@@ -20,6 +20,7 @@ void main() async {
 
     await ScreenUtil.ensureScreenSize();
 
+
     await dotenv.load(fileName: ".env");
   
   runApp(const MyApp());
@@ -30,7 +31,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'مسكن',
       locale: const Locale('ar'),
       theme: ThemeData(
@@ -58,6 +62,7 @@ class MyApp extends StatelessWidget {
           child: child!,
         );
       },
+    )
     );
   }
 
