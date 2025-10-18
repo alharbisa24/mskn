@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserProfile extends StatefulWidget {
   const UserProfile({super.key});
@@ -301,12 +303,30 @@ class _EditProfileState extends State<EditProfile> {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop({
-                  "name": nameCtrl.text,
-                  "phone": phoneCtrl.text,
-                  "email": emailCtrl.text,
-                });
+              onPressed: () async {
+                final user = FirebaseAuth.instance.currentUser;
+
+                if (user != null) {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .set({
+                    "name": nameCtrl.text,
+                    "phone": phoneCtrl.text,
+                    "email": emailCtrl.text,
+                  }, SetOptions(merge: true));
+
+                  Navigator.of(context).pop({
+                    "name": nameCtrl.text,
+                    "phone": phoneCtrl.text,
+                    "email": emailCtrl.text,
+                  });
+                } else {
+                  // المستخدم مو مسجل دخول
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("يرجى تسجيل الدخول أولاً")),
+                  );
+                }
               },
               child: const Text("حفظ التعديلات"),
             )
