@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
+// Removed awesome_dialog to avoid native Rive dependency; using AlertDialog instead
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mskn/home_page.dart';
 
@@ -274,10 +274,12 @@ class _BuyerRegisterState extends State<BuyerRegister>
                               }, SetOptions(merge: true));
 
                               if (context.mounted) {
-                             Navigator.of(context).pushAndRemoveUntil(
-  MaterialPageRoute(builder: (_) => const HomePage()),
-  (Route<dynamic> route) => false, // هذا سيمسح كل الصفحات السابقة
-);
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                      builder: (_) => const HomePage()),
+                                  (Route<dynamic> route) =>
+                                      false, // هذا سيمسح كل الصفحات السابقة
+                                );
                               }
                             } on FirebaseAuthException catch (e) {
                               String errorMessage = 'فشل في انشاء الحساب.';
@@ -288,17 +290,20 @@ class _BuyerRegisterState extends State<BuyerRegister>
                                     'يوجد حساب مسجل مسبقا بنفس البريد الالكتروني.';
                               }
                               if (context.mounted) {
-                                AwesomeDialog(
+                                showDialog(
                                   context: context,
-                                  dialogType: DialogType.error,
-                                  animType: AnimType.rightSlide,
-                                  headerAnimationLoop: false,
-                                  title: 'Error',
-                                  desc: errorMessage,
-                                  btnOkOnPress: () {},
-                                  btnOkIcon: Icons.cancel,
-                                  btnOkColor: Colors.red,
-                                ).show();
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('خطأ'),
+                                    content: Text(errorMessage),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('موافق'),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               }
                             }
                           }

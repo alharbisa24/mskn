@@ -8,20 +8,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mskn/home_page.dart';
 import 'package:mskn/register_menu.dart';
 import 'package:mskn/login.dart';
+import 'package:mskn/utils/env.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  await AppEnv.init();
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+  await ScreenUtil.ensureScreenSize();
 
-    await ScreenUtil.ensureScreenSize();
-
-    await dotenv.load(fileName: ".env");
-  
   runApp(const MyApp());
 }
 
@@ -489,7 +487,9 @@ class _RootMainPageState extends State<RootMainPage>
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).push(
-                              MaterialPageRoute(builder: (context) => const EmailPasswordLogin()),
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const EmailPasswordLogin()),
                             );
                           },
                           style: ElevatedButton.styleFrom(

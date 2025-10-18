@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:awesome_dialog/awesome_dialog.dart';
+// Removed awesome_dialog to avoid native Rive dependency; using AlertDialog instead
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mskn/home_page.dart';
 import 'package:mskn/seller_profile.dart';
@@ -251,7 +251,6 @@ class _SellerRegisterState extends State<SellerRegister>
                       ),
                     ),
                   ),
-
                   Positioned(
                     left: horizontalPadding,
                     right: horizontalPadding,
@@ -276,7 +275,6 @@ class _SellerRegisterState extends State<SellerRegister>
                                 password: password.text,
                               );
                               if (context.mounted) {
-
                                 final uid = credential.user!.uid;
                                 await FirebaseFirestore.instance
                                     .collection('profile')
@@ -292,14 +290,16 @@ class _SellerRegisterState extends State<SellerRegister>
                                   'x': '',
                                   'instagram': '',
                                   'snapchat': '',
-                                  "rank":"seller",
+                                  "rank": "seller",
                                   'created_at': FieldValue.serverTimestamp(),
                                 }, SetOptions(merge: true));
 
-                                        Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const HomePage()),
-            (Route<dynamic> route) => false, // هذا سيمسح كل الصفحات السابقة
-          );
+                                Navigator.of(context).pushAndRemoveUntil(
+                                  MaterialPageRoute(
+                                      builder: (_) => const HomePage()),
+                                  (Route<dynamic> route) =>
+                                      false, // هذا سيمسح كل الصفحات السابقة
+                                );
                               }
                             } on FirebaseAuthException catch (e) {
                               String errorMessage = 'فشل في انشاء الحساب.';
@@ -312,31 +312,37 @@ class _SellerRegisterState extends State<SellerRegister>
                               }
 
                               if (context.mounted) {
-                                AwesomeDialog(
+                                showDialog(
                                   context: context,
-                                  dialogType: DialogType.error,
-                                  animType: AnimType.rightSlide,
-                                  headerAnimationLoop: false,
-                                  title: 'Error',
-                                  desc: errorMessage,
-                                  btnOkOnPress: () {},
-                                  btnOkIcon: Icons.cancel,
-                                  btnOkColor: Colors.red,
-                                ).show();
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('خطأ'),
+                                    content: Text(errorMessage),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('موافق'),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                AwesomeDialog(
+                                showDialog(
                                   context: context,
-                                  dialogType: DialogType.error,
-                                  animType: AnimType.rightSlide,
-                                  headerAnimationLoop: false,
-                                  title: 'Error',
-                                  desc: 'Error: ${e.toString()}',
-                                  btnOkOnPress: () {},
-                                  btnOkIcon: Icons.cancel,
-                                  btnOkColor: Colors.red,
-                                ).show();
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('خطأ'),
+                                    content: Text('Error: ${e.toString()}'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text('موافق'),
+                                      ),
+                                    ],
+                                  ),
+                                );
                               }
                             }
                           }
