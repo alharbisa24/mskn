@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mskn/seller_properties.dart';
 
 class MorePage extends StatefulWidget {
   const MorePage({super.key});
@@ -17,6 +18,27 @@ class _MorePageState extends State<MorePage> {
             children: [
               Center(
                 child: Text('Map Page'),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.home_work_outlined),
+                    label: const Text('عقاراتي'),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SellerPropertiesPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
               ),
             ],
         )
