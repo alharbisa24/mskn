@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mskn/home/models/property.dart';
 import 'package:mskn/home/property_details.dart';
 
@@ -43,32 +44,30 @@ class _FavoritePageState extends State<FavoritePage> {
       yield propSnap.docs.map((doc) => Property.fromFirestore(doc)).toList();
     }
   }
+    String formatPrice(String price) {
+    final numeric = price.replaceAll(RegExp(r'[^0-9]'), '');
+    if (numeric.isEmpty) return '0';
+    final number = double.tryParse(numeric) ?? 0;
+    final formatted = number.toInt().toString().replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return formatted;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text('قائمة المفضلة'),
+        backgroundColor: Colors.white,
+      ),
       backgroundColor: const Color(0xFFF8F9FB),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // عنوان الصفحة
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text(
-                    'قائمة المفضلة',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  
             const Divider(thickness: 1, height: 1),
 
             Expanded(
@@ -114,106 +113,133 @@ class _FavoritePageState extends State<FavoritePage> {
                       final property = properties[index];
                       return GestureDetector(
                         onTap: () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (context) {
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () => Navigator.of(context).pop(),
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: Container(
-                                          color: Colors.black.withOpacity(0.3)),
-                                    ),
-                                    Align(
-                                      alignment: Alignment.bottomCenter,
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.vertical(
-                                              top: Radius.circular(25)),
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                  top: Radius.circular(25)),
-                                          child: GestureDetector(
-                                            onTap: () {},
-                                            child: FractionallySizedBox(
-                                              heightFactor: 0.9,
-                                              child: PropertyDetails(
-                                                  property: property),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
-                        },
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                                color: Colors.grey.shade300, width: 1),
-                          ),
-                          elevation: 0,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Expanded(
-                                child: Image.network(
-                                  property.image,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: Colors.grey.shade300,
-                                      alignment: Alignment.center,
-                                      child: const Icon(Icons.broken_image,
-                                          size: 40, color: Colors.grey),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      property.title,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.right,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      property.location_name,
-                                      style:
-                                          const TextStyle(color: Colors.grey),
-                                      textAlign: TextAlign.right,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${property.price} ر.س',
-                                      style: const TextStyle(
-                                          color: Colors.blue,
-                                          fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.right,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+    showModalBottomSheet(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent, // ضروري لخلفية شفافة
+  builder: (context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // يلتقط الضغط في أي مكان فارغ
+      onTap: () => Navigator.of(context).pop(), // يغلق الـ bottom sheet
+      child: Stack(
+        children: [
+          // المحتوى الشفاف بالخلف (النقر عليه يغلق)
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(0.3)), // يعطي ظل خفيف
+          ),
+
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(25),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(25)),
+                child: GestureDetector(
+                  onTap: () {}, // يمنع الإغلاق عند النقر داخل المحتوى
+                  child: FractionallySizedBox(
+                    heightFactor: 0.9,
+                    child: PropertyDetails(
+                                    property: property,
+
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  },
+);
+
+                  },
+            child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+      
+        ),
+        child: Card(
+          clipBehavior: Clip.hardEdge,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+              side: BorderSide(
+          color: Colors.grey.shade300, 
+          width: 1, 
+      ),
+          ),
+          elevation: 0,
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Image.network(
+                  property.image,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color: Colors.grey.shade200,
+                      alignment: Alignment.center,
+                      child: const CircularProgressIndicator(),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey.shade300,
+                      alignment: Alignment.center,
+                      child: const Icon(Icons.broken_image,
+                          size: 40, color: Colors.grey),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  vertical: 10.w,
+                  horizontal: 10.h
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      property.title,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      property.location_name,
+                      style: const TextStyle(color: Colors.grey),
+                      textAlign: TextAlign.right,
+                    ),
+                    const SizedBox(height: 4),
+                    // 💰 Price formatted with commas
+                    Text(
+                      '${formatPrice(property.price)} ر.س',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
                       );
                     },
                   );

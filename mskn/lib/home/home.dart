@@ -212,7 +212,6 @@ class PropertyGrid extends StatelessWidget {
       if (!matchesTag) {
         final List<String> targetTypes = tagToTypeMap[selectedTag] ?? [];
 
-        // Check if the property's *type* field matches any of the target types (after normalization)
         matchesTag = targetTypes.any((targetType) =>
             normalizedType.contains(_normalizeArabic(targetType)));
       }
@@ -244,7 +243,6 @@ class PropertyGrid extends StatelessWidget {
         }
 
         if (snapshot.hasError) {
-          // Show error message
           return Center(
               child: Padding(
             padding: const EdgeInsets.all(20.0),

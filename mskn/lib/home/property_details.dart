@@ -131,20 +131,43 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           // إذا كانت بالمفضلة نحذفها
                           await favRef.delete();
                           setState(() => isFavorite = false);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('تمت الإزالة من المفضلة')),
-                          );
+                            showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                backgroundColor: Colors.white,
+                              title: const Text('تمت الإزالة'),
+                              content: const Text('تمت إزالة العقار من المفضلة بنجاح'),
+                              actions: [
+                                TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('حسناً'),
+                                ),
+                              ],
+                              );
+                            },
+                            );
                         } else {
-                          // إذا مو موجودة نضيفها
                           await favRef.set({
                             'added_at': FieldValue.serverTimestamp(),
                           });
                           setState(() => isFavorite = true);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('تمت الإضافة إلى المفضلة')),
-                          );
+                            showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                              backgroundColor: Colors.white,
+                              title: const Text('تمت الإضافة'),
+                              content: const Text('تمت إضافة العقار إلى المفضلة بنجاح'),
+                              actions: [
+                                TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('حسناً'),
+                                ),
+                              ],
+                              );
+                            },
+                            );
                         }
                       },
                     ),
