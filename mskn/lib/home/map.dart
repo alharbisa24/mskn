@@ -611,7 +611,6 @@ int _selectedAreaCount = 0;
 final List<String> _aiQuestions = [
   'هل تفضل القرب من محطة ميترو ؟',
   'هل تفضل القرب من المولات والمناطق الترفيهية ؟',
-  'هل تفضل القرب من مناطق العمل الرئيسية (KACST - KAFD) ؟',
   'هل تفضل المناطق الهادئة؟',
   'هل تفضل الاحياء الحديثة ؟',
   'هل تفضل القرب من الطرق الرئيسية',
@@ -748,13 +747,41 @@ Widget _buildAiAssistantModal() {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
-                          if (_currentAiPage == 0 && _selectedPropertyType.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('الرجاء اختيار نوع العقار')),
+                      if (_purchaseType.isEmpty) {
+        showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                backgroundColor: Colors.white,
+                                title: const Text('خطأ'),
+                                content: const Text('الرجاء اختيار طريقة الشراء'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('حسناً'),
+                                  ),
+                                ],
+                              ),
                             );
-                            return;
-                          }
-                          
+    return;
+  }
+  if (_selectedPropertyType.isEmpty) {
+        showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                              backgroundColor: Colors.white,
+                                title: const Text('خطأ'),
+                                content: const Text('الرجاء اختيار نوع العقار'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('حسناً'),
+                                  ),
+                                ],
+                              ),
+                            );
+    return;
+  }
+  
                           if (_currentAiPage < 2) {
                             _aiPageController.nextPage(
                               duration: const Duration(milliseconds: 300),
@@ -1398,6 +1425,55 @@ Widget _buildLoadingPage() {
     ),
   );
 }
+String _purchaseType = ''; // 'buy' or 'rent'
+double _minBudget = 500000;
+double _maxBudget = 5000000;
+
+// Add this method to update budget range based on property type and purchase type
+void _updateBudgetRange() {
+  if (_purchaseType == 'buy') {
+    switch (_selectedPropertyType) {
+      case 'villa':
+        _minBudget = 1000000;
+        _maxBudget = 10000000;
+        break;
+      case 'house':
+        _minBudget = 800000;
+        _maxBudget = 8000000;
+        break;
+      case 'apartment':
+        _minBudget = 400000;
+        _maxBudget = 5000000;
+        break;
+      default:
+        _minBudget = 500000;
+        _maxBudget = 5000000;
+    }
+  } else if (_purchaseType == 'rent') {
+    switch (_selectedPropertyType) {
+      case 'villa':
+        _minBudget = 40000;
+        _maxBudget = 200000;
+        break;
+      case 'house':
+        _minBudget = 30000;
+        _maxBudget = 150000;
+        break;
+      case 'apartment':
+        _minBudget = 15000;
+        _maxBudget = 100000;
+        break;
+      default:
+        _minBudget = 15000;
+        _maxBudget = 100000;
+    }
+  }
+  
+  // Adjust current budget if it's out of new range
+  if (_budget < _minBudget) _budget = _minBudget;
+  if (_budget > _maxBudget) _budget = _maxBudget;
+}
+
 Widget _buildGeneralInfoPage(StateSetter setModalState) {
   return SingleChildScrollView(
     padding: const EdgeInsets.all(20),
@@ -1448,6 +1524,51 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
         ),
         const SizedBox(height: 32),
         
+        // Purchase type selection
+        Text(
+          'طريقة الشراء',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _purchaseTypeOption(
+          'شراء',
+          'buy',
+          Icons.attach_money_outlined,
+          _purchaseType == 'buy',
+          () {
+            setModalState(() {
+              _purchaseType = 'buy';
+              _updateBudgetRange();
+            });
+          },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _purchaseTypeOption(
+              'ايجار',
+              'rent',
+              Icons.key_outlined,
+              _purchaseType == 'rent',
+              () {
+          setModalState(() {
+          _purchaseType = 'rent';
+          _updateBudgetRange();
+          });
+              },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        
         // Property type selection
         Text(
           'نوع العقار',
@@ -1466,7 +1587,31 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
                 'villa', 
                 Icons.villa_outlined, 
                 _selectedPropertyType == 'villa',
-                () => setModalState(() => _selectedPropertyType = 'villa'),
+                () {
+                  setModalState(() {
+                    _selectedPropertyType = 'villa';
+                    if (_purchaseType.isNotEmpty) {
+                      _updateBudgetRange();
+                    }
+                  });
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _propertyTypeOption(
+                'بيت', 
+                'house', 
+                Icons.house, 
+                _selectedPropertyType == 'house',
+                () {
+                  setModalState(() {
+                    _selectedPropertyType = 'house';
+                    if (_purchaseType.isNotEmpty) {
+                      _updateBudgetRange();
+                    }
+                  });
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -1476,14 +1621,18 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
                 'apartment', 
                 Icons.apartment_outlined, 
                 _selectedPropertyType == 'apartment',
-                () => setModalState(() => _selectedPropertyType = 'apartment'),
+                () {
+                  setModalState(() {
+                    _selectedPropertyType = 'apartment';
+                    if (_purchaseType.isNotEmpty) {
+                      _updateBudgetRange();
+                    }
+                  });
+                },
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-       
-        
         const SizedBox(height: 32),
         
         // Budget selection
@@ -1491,23 +1640,54 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'الميزانية',
+              _purchaseType == 'rent' ? 'الإيجار السنوي' : 'الميزانية',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.grey[800],
               ),
             ),
-            Text(
-              _formatCurrency(_budget),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2575FC),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2575FC).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF2575FC).withOpacity(0.3),
+                ),
+              ),
+              child: Text(
+                _formatCurrency(_budget),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2575FC),
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              _formatCurrency(_minBudget),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            Text(
+              _formatCurrency(_maxBudget),
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: const Color(0xFF2575FC),
@@ -1520,9 +1700,9 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
           ),
           child: Slider(
-            min: 500000,
-            max: 5000000,
-            divisions: 45,
+            min: _minBudget,
+            max: _maxBudget,
+            divisions: 50,
             value: _budget,
             label: _formatCurrency(_budget),
             onChanged: (value) {
@@ -1780,6 +1960,59 @@ Widget _buildProcessingView() {
   );
 }
 
+
+Widget _purchaseTypeOption(
+  String label,
+  String value,
+  IconData icon,
+  bool isSelected,
+  VoidCallback onTap,
+) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: isSelected ? const Color(0xFF2575FC).withOpacity(0.1) : Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isSelected ? const Color(0xFF2575FC) : Colors.grey[300]!,
+          width: isSelected ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: isSelected 
+                  ? const Color(0xFF2575FC).withOpacity(0.15)
+                  : Colors.grey[100],
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Icon(
+              icon,
+              size: 28,
+              color: isSelected ? const Color(0xFF2575FC) : Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? const Color(0xFF2575FC) : Colors.grey[800],
+              fontSize: 15,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 Widget _propertyTypeOption(
   String label, 
   String value, 
@@ -1820,6 +2053,7 @@ Widget _propertyTypeOption(
     ),
   );
 }
+
 
 Widget _buildYesNoQuestion(String question, bool value, ValueChanged<bool> onChanged) {
   return Container(
