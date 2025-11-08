@@ -1,5 +1,5 @@
 {
-  "name": "jadwlk-backend",
+  "name": "mskn-backend",
   "version": "1.0.0",
   "description": "Backend API for AI model integration - receives input from frontend and returns AI response",
   "main": "server.js",
