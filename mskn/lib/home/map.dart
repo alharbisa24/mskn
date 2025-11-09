@@ -7,6 +7,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
@@ -188,7 +189,7 @@ TextEditingController search = TextEditingController();
               zoomControlsEnabled: false,
               mapType: MapType.normal,
               markers: _markers,
-             circles: _buildDistrictsCircles(),
+             circles: _districts,
 
             ),
 
@@ -608,6 +609,9 @@ double _budget = 1000000;
 Set<Circle> _selectedAreas = {};
 int _selectedAreaCount = 0;
 
+// Store API response
+Map<String, dynamic>? _apiResponse;
+
 final List<String> _aiQuestions = [
   'هل تفضل القرب من محطة ميترو ؟',
   'هل تفضل القرب من المولات والمناطق الترفيهية ؟',
@@ -630,6 +634,7 @@ void _showAiAssistant() {
   _selectedAreas.clear();
   _selectedAreaCount = 0;
   _isProcessing = false;
+  _apiResponse = null;
   
   _aiQuestions.shuffle();
 
@@ -811,22 +816,85 @@ Widget _buildAiAssistantModal() {
                             setModalState(() {
                               _isProcessing = true;
                             });
-                            for (var circle in _selectedAreas) {
-                              print('Latitude: ${circle.center.latitude}, Longitude: ${circle.center.longitude}');
+                            
+                            try {
+                              // Call the API
+                              final apiResponse = await _sendApiRequest();
+                              
+                              // Store the API response
+                              setModalState(() {
+                                _apiResponse = apiResponse;
+                                _isProcessing = false;
+                              });
+                              
+                              // Update map circles with API response
+                              if (apiResponse['points'] != null) {
+                                setState(() {
+                                  _districts.clear();
+                                  final points = apiResponse['points'] as List<dynamic>;
+                                  for (var point in points) {
+                                    final coordinates = point['coordinates'] as List<dynamic>;
+                                    if (coordinates.isNotEmpty) {
+                                      final firstCoord = coordinates[0];
+                                      final lat = firstCoord['latitude'] as double;
+                                      final lng = firstCoord['longitude'] as double;
+                                      final color = point['color'] as String? ?? 'green';
+                                      
+                                      Color circleColor;
+                                      switch (color.toLowerCase()) {
+                                        case 'green':
+                                          circleColor = Colors.green;
+                                          break;
+                                        case 'yellow':
+                                          circleColor = Colors.amber;
+                                          break;
+                                        case 'red':
+                                          circleColor = Colors.red;
+                                          break;
+                                        default:
+                                          circleColor = Colors.green;
+                                      }
+                                      
+                                      _districts.add(
+                                        Circle(
+                                          circleId: CircleId('ai_${_districts.length}'),
+                                          center: LatLng(lat, lng),
+                                          radius: 1500,
+                                          fillColor: circleColor.withOpacity(0.3),
+                                          strokeColor: circleColor,
+                                          strokeWidth: 2,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                });
+                              }
+                              
+                              // Navigate to results page
+                              _aiPageController.nextPage(
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                              );
+                            } catch (e) {
+                              setModalState(() {
+                                _isProcessing = false;
+                              });
+                              
+                              // Show error dialog
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text('خطأ'),
+                                  content: Text('فشل في تحليل البيانات: $e'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('حسناً'),
+                                    ),
+                                  ],
+                                ),
+                              );
                             }
-
-                            // Simulate loading for 5 seconds
-                            await Future.delayed(const Duration(seconds: 5));
-                            
-                            // Navigate to results page
-                            _aiPageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                            
-                            setModalState(() {
-                              _isProcessing = false;
-                            });
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -850,12 +918,33 @@ Widget _buildAiAssistantModal() {
 }
 
 Widget _buildResultsPage(StateSetter setModalState) {
-  // Extract neighborhoods from simulated API response
-  final neighborhoods = [
-    {'name': 'حي النرجس', 'color': 'green'},
-    {'name': 'حي الياسمين', 'color': 'yellow'},
-    {'name': 'حي الصحافة', 'color': 'red'},
-  ];
+  // Extract neighborhoods from API response
+  final List<Map<String, dynamic>> neighborhoods = [];
+  
+  if (_apiResponse != null && _apiResponse!['points'] != null) {
+    final points = _apiResponse!['points'] as List<dynamic>;
+    for (var point in points) {
+      final name = (point['Name'] as String? ?? 'Unknown').split('،')[0].trim();
+      final color = point['color'] as String? ?? 'green';
+      
+      // Check if neighborhood already exists
+      if (!neighborhoods.any((n) => n['name'] == name)) {
+        neighborhoods.add({
+          'name': name,
+          'color': color,
+        });
+      }
+    }
+  }
+  
+  // Fallback to default if no API response
+  if (neighborhoods.isEmpty) {
+    neighborhoods.addAll([
+      {'name': 'حي النرجس', 'color': 'green'},
+      {'name': 'حي الياسمين', 'color': 'yellow'},
+      {'name': 'حي الصحافة', 'color': 'red'},
+    ]);
+  }
 
   return SingleChildScrollView(
     child: Column(
@@ -1247,8 +1336,53 @@ Widget _buildColorLegendItem({
 }
 
 Set<Circle> _buildColoredCircles() {
+  // Use API response circles if available, otherwise use default
+  if (_apiResponse != null && _apiResponse!['points'] != null) {
+    final Set<Circle> circles = {};
+    final points = _apiResponse!['points'] as List<dynamic>;
+    
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
+      final coordinates = point['coordinates'] as List<dynamic>;
+      if (coordinates.isNotEmpty) {
+        final firstCoord = coordinates[0];
+        final lat = firstCoord['latitude'] as double;
+        final lng = firstCoord['longitude'] as double;
+        final color = point['color'] as String? ?? 'green';
+        
+        Color circleColor;
+        switch (color.toLowerCase()) {
+          case 'green':
+            circleColor = Colors.green;
+            break;
+          case 'yellow':
+            circleColor = Colors.amber;
+            break;
+          case 'red':
+            circleColor = Colors.red;
+            break;
+          default:
+            circleColor = Colors.green;
+        }
+        
+        circles.add(
+          Circle(
+            circleId: CircleId('result_$i'),
+            center: LatLng(lat, lng),
+            radius: 1500,
+            fillColor: circleColor.withOpacity(0.3),
+            strokeColor: circleColor,
+            strokeWidth: 2,
+          ),
+        );
+      }
+    }
+    
+    return circles;
+  }
+  
+  // Default circles if no API response
   return {
-    // Green circles (highly recommended)
     Circle(
       circleId: const CircleId('green_1'),
       center: const LatLng(24.7136, 46.6753),
@@ -1263,32 +1397,6 @@ Set<Circle> _buildColoredCircles() {
       radius: 1500,
       fillColor: Colors.green.withOpacity(0.3),
       strokeColor: Colors.green,
-      strokeWidth: 2,
-    ),
-    // Yellow circles (moderate)
-    Circle(
-      circleId: const CircleId('yellow_1'),
-      center: const LatLng(24.7255, 46.6855),
-      radius: 1500,
-      fillColor: Colors.amber.withOpacity(0.3),
-      strokeColor: Colors.amber,
-      strokeWidth: 2,
-    ),
-    Circle(
-      circleId: const CircleId('yellow_2'),
-      center: const LatLng(24.7302, 46.6908),
-      radius: 1500,
-      fillColor: Colors.amber.withOpacity(0.3),
-      strokeColor: Colors.amber,
-      strokeWidth: 2,
-    ),
-    // Red circles (basic option)
-    Circle(
-      circleId: const CircleId('red_1'),
-      center: const LatLng(24.7350, 46.6950),
-      radius: 1500,
-      fillColor: Colors.red.withOpacity(0.3),
-      strokeColor: Colors.red,
       strokeWidth: 2,
     ),
   };
@@ -2155,64 +2263,74 @@ Future<Map<String, dynamic>> _sendApiRequest() async {
   }
 }*/
 Future<Map<String, dynamic>> _sendApiRequest() async {
-  // Simulate a delay to mimic API processing time
-  await Future.delayed(const Duration(seconds: 5));
+  try {
+    // Get backend URL from environment or use platform-specific default
+    String defaultUrl;
+    if (Platform.isAndroid) {
+      // Android emulator uses 10.0.2.2 to access host machine's localhost
+      defaultUrl = 'http://10.0.2.2:3000';
+    } else if (Platform.isIOS) {
+      // iOS simulator can use localhost
+      defaultUrl = 'http://localhost:3000';
+    } else {
+      // Desktop or other platforms
+      defaultUrl = 'http://localhost:3000';
+    }
+    
+    final String baseUrl = dotenv.env['BACKEND_URL'] ?? defaultUrl;
+    final String apiUrl = '$baseUrl/api/ai/ask';
+    
+    print('🌐 Connecting to backend: $apiUrl');
 
-  // Simulated response
-  return {
-    "points": [
-      {
-        "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",
-        "coordinates": [
-          {"latitude": 24.7136, "longitude": 46.6753},
-          {"latitude": 24.7140, "longitude": 46.6760},
-          {"latitude": 24.7145, "longitude": 46.6765},
-          {"latitude": 24.7150, "longitude": 46.6770}
-        ],
-        "color": "green"
-      },
-      {
-        "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",
-        "coordinates": [
-          {"latitude": 24.7200, "longitude": 46.6800},
-          {"latitude": 24.7210, "longitude": 46.6810},
-          {"latitude": 24.7220, "longitude": 46.6820},
-          {"latitude": 24.7230, "longitude": 46.6830}
-        ],
-        "color": "green"
-      },
-      {
-        "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",
-        "coordinates": [
-          {"latitude": 24.7255, "longitude": 46.6855},
-          {"latitude": 24.7260, "longitude": 46.6860},
-          {"latitude": 24.7265, "longitude": 46.6865},
-          {"latitude": 24.7270, "longitude": 46.6870}
-        ],
-        "color": "green"
-      },
-      {
-        "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",
-        "coordinates": [
-          {"latitude": 24.7302, "longitude": 46.6908},
-          {"latitude": 24.7310, "longitude": 46.6915},
-          {"latitude": 24.7320, "longitude": 46.6920},
-          {"latitude": 24.7330, "longitude": 46.6930}
-        ],
-        "color": "green"
-      },
-      {
-        "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",
-        "coordinates": [
-          {"latitude": 24.7350, "longitude": 46.6950},
-          {"latitude": 24.7355, "longitude": 46.6955},
-          {"latitude": 24.7360, "longitude": 46.6960},
-          {"latitude": 24.7365, "longitude": 46.6965}
-        ],
-        "color": "green"
+    // Use the selected property type (already in English: 'villa', 'house', 'apartment')
+    String propertyType = _selectedPropertyType.isNotEmpty 
+        ? _selectedPropertyType 
+        : 'apartment'; // default
+
+    // Prepare request data
+    final requestData = {
+      'type': propertyType,
+      'amount': _budget.toInt(),
+      'questions_answers': _yesNoAnswers,
+      'points': _selectedAreas.map((circle) {
+        return {
+          'latitude': circle.center.latitude,
+          'longitude': circle.center.longitude,
+        };
+      }).toList(),
+    };
+
+    // Send API request
+    final response = await _dio.post(
+      apiUrl,
+      data: requestData,
+      options: Options(
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+
+    // Return the API response
+    return response.data;
+  } catch (e) {
+    print('❌ Error calling API: $e');
+    
+    // Provide more helpful error messages
+    String errorMessage = 'فشل في تحليل البيانات';
+    if (e.toString().contains('Connection refused') || e.toString().contains('SocketException')) {
+      errorMessage = 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 3000';
+      if (Platform.isAndroid) {
+        errorMessage += '\n\nللأجهزة الافتراضية: تأكد من استخدام http://10.0.2.2:3000';
       }
-    ]
-  };
+    } else if (e.toString().contains('Timeout')) {
+      errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى';
+    } else {
+      errorMessage = 'فشل في تحليل البيانات: ${e.toString()}';
+    }
+    
+    throw Exception(errorMessage);
+  }
 }
 void _showLoadingScreen(BuildContext context) {
   Navigator.push(
@@ -2223,37 +2341,12 @@ void _showLoadingScreen(BuildContext context) {
   );
 }
 
+  // This function is no longer used - the map now uses _districts directly
+  // which gets updated from the API response
   Set<Circle> _buildDistrictsCircles() {
-  return {
-    Circle(
-      circleId: const CircleId('green_1'),
-      center: const LatLng(24.724004653227247, 46.624481099103),
-      radius: 1500,
-      fillColor: Colors.green.withOpacity(0.3),
-      strokeColor: Colors.green,
-      strokeWidth: 2,
-    ),
-    Circle(
-      circleId: const CircleId('green_2'),
-      center: const LatLng(24.711310936826848, 46.778243088126004),
-      radius: 1500,
-      fillColor: Colors.green.withOpacity(0.3),
-      strokeColor: Colors.green,
-      strokeWidth: 2,
-    ),
-
-       Circle(
-      circleId: const CircleId('orange_1'),
-      center: const LatLng(24.68037149806085,46.621552194610004),
-      radius: 1500,
-      fillColor: Colors.orange.withOpacity(0.3),
-      strokeColor: Colors.orange,
-      strokeWidth: 2,
-    ),
-  
- 
-  };
-}
+    // Return empty set - circles are now managed via _districts from API response
+    return _districts;
+  }
 }
 class LoadingScreen extends StatelessWidget {
   const LoadingScreen({Key? key}) : super(key: key);
