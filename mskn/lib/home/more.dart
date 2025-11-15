@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mskn/home/chatbot_page.dart';
 import 'package:mskn/seller_properties.dart';
 
 class MorePage extends StatefulWidget {
@@ -11,7 +12,7 @@ class MorePage extends StatefulWidget {
 class _MorePageState extends State<MorePage> {
   @override
   Widget build(BuildContext context) {
-  return Scaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: CustomScrollView(
@@ -51,25 +52,30 @@ class _MorePageState extends State<MorePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.home_work_outlined),
-                          label: const Text('عقاراتي'),
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const SellerPropertiesPage(),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.support_agent,
+                      label: 'مساعد مسكن الذكي',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ChatbotPage(),
                           ),
-                        ),
-                      ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.home_work_outlined,
+                      label: 'عقاراتي',
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SellerPropertiesPage(),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -79,5 +85,24 @@ class _MorePageState extends State<MorePage> {
         ),
       ),
     );
-    }
+  }
+
+  Widget _buildActionButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: Icon(icon),
+        label: Text(label),
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
 }
