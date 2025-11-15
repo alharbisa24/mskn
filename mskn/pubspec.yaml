@@ -41,7 +41,6 @@ dependencies:
   firebase_auth: ^6.0.1
   flutter_dotenv: ^6.0.0
   google_fonts: ^5.0.0
-  awesome_dialog: ^3.3.0
   image_picker: ^1.2.0
   google_maps_flutter: ^2.7.0
   shared_preferences: ^2.5.3
@@ -53,6 +52,7 @@ dependencies:
   get: ^4.7.2
   shimmer: ^3.0.0
   share_plus: ^12.0.0
+  google_generative_ai: ^0.4.7
   
 dev_dependencies:
   flutter_test:
