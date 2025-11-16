@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:mskn/home_page.dart';
 import 'package:mskn/register_menu.dart';
 import 'package:mskn/login.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +18,8 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-
+  await initializeDateFormatting('ar', null);
+  await initializeDateFormatting('en_US', null);
 
     await ScreenUtil.ensureScreenSize();
 
@@ -39,8 +41,7 @@ class MyApp extends StatelessWidget {
       title: 'مسكن',
       locale: const Locale('ar'),
       theme: ThemeData(
-        primaryColor: const Color(0xFF1A73E8),
-        scaffoldBackgroundColor: Colors.white,
+          colorSchemeSeed: Colors.white,
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1A73E8),
