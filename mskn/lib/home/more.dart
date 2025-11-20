@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mskn/home/chatbot_page.dart';
 import 'package:mskn/home/dashboard/home.dart';
 import 'package:mskn/seller_properties.dart';
+import 'package:mskn/home/calculator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -30,7 +31,7 @@ class _MorePageState extends State<MorePage> {
             .collection('profile')
             .doc(user.uid)
             .get();
-        
+
         if (doc.exists) {
           final rank = doc.data()?['rank'] ?? '';
           setState(() {
@@ -136,13 +137,14 @@ class _MorePageState extends State<MorePage> {
                             ),
                           ),
                           const SizedBox(height: 24),
-                          
+
                           // Cards
                           _buildModernCard(
                             context,
                             icon: Icons.support_agent_rounded,
                             title: 'المساعد الذكي',
-                            description: 'احصل على مساعدة فورية من الذكاء الاصطناعي',
+                            description:
+                                'احصل على مساعدة فورية من الذكاء الاصطناعي',
                             gradient: LinearGradient(
                               colors: [
                                 const Color(0xFF2575FC),
@@ -158,7 +160,7 @@ class _MorePageState extends State<MorePage> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          
+
                           _buildModernCard(
                             context,
                             icon: Icons.home_work_outlined,
@@ -178,7 +180,27 @@ class _MorePageState extends State<MorePage> {
                               );
                             },
                           ),
-                          
+                          const SizedBox(height: 16),
+                          _buildModernCard(
+                            context,
+                            icon: Icons.calculate,
+                            title: 'حاسبة القروض',
+                            description: 'احسب دفعات القرض والفائدة بسهولة',
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blue.shade400,
+                                Colors.blue.shade700,
+                              ],
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const CalculatorPage(),
+                                ),
+                              );
+                            },
+                          ),
+
                           // Show dashboard only for admins
                           if (_isAdmin) ...[
                             const SizedBox(height: 16),
@@ -260,7 +282,7 @@ class _MorePageState extends State<MorePage> {
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // Text content
             Expanded(
               child: Column(
@@ -286,7 +308,7 @@ class _MorePageState extends State<MorePage> {
                 ],
               ),
             ),
-            
+
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
