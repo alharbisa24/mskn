@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mskn/home/favorite.dart';
 import 'package:mskn/home/models/property.dart';
+import 'package:mskn/home/notifications_page.dart';
 import 'package:mskn/home/property_details.dart';
 
 
@@ -107,6 +108,7 @@ class _HomeMainPageState extends State<HomeMainPage> {
                 const Text('الرياض',
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const Spacer(flex: 1),
+                _NotificationsIconButton(),
                 IconButton(
                   icon: const Icon(Icons.favorite_border),
                   onPressed: () {
@@ -173,6 +175,87 @@ class _HomeMainPageState extends State<HomeMainPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NotificationsIconButton extends StatefulWidget {
+  const _NotificationsIconButton({super.key});
+
+  @override
+  State<_NotificationsIconButton> createState() =>
+      _NotificationsIconButtonState();
+}
+
+class _NotificationsIconButtonState extends State<_NotificationsIconButton> {
+  bool _seenThisSession = false;
+
+  void _openNotifications(BuildContext context) {
+    setState(() {
+      _seenThisSession = true;
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const NotificationsPage(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notificationsStream =
+        FirebaseFirestore.instance.collection('notifications').snapshots();
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: notificationsStream,
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+
+        if (docs.isEmpty) {
+          return IconButton(
+            icon: const Icon(Icons.notifications_none_outlined),
+            onPressed: () => _openNotifications(context),
+          );
+        }
+
+        final count = docs.length;
+        final showAlert = !_seenThisSession;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            IconButton(
+              icon: Icon(
+                showAlert
+                    ? Icons.notifications
+                    : Icons.notifications_none_outlined,
+              ),
+              onPressed: () => _openNotifications(context),
+            ),
+            if (showAlert)
+              Positioned(
+                right: 4,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    count > 9 ? '9+' : '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
