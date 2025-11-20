@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mskn/home/dashboard/notifications_dashboard.dart';
 import 'package:mskn/home/dashboard/reports.dart';
 
 class DashboardHomeWidget extends StatefulWidget {
@@ -275,8 +276,11 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         ],
                       ),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('سيتم فتح نظام الاشعارات')),
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const NotificationsDashboardWidget(),
+                          ),
                         );
                       },
                     ),
