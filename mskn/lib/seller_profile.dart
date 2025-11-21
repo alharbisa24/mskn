@@ -177,6 +177,44 @@ class SellerProfile extends StatelessWidget {
                             value: _textOrNA(data['snapchat']),
                           ),
                         ]),
+
+                        const SizedBox(height: 20),
+
+                        // Logout button (full width, placed at the end)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              icon:
+                                  const Icon(Icons.logout, color: Colors.white),
+                              label: const Text(
+                                'تسجيل الخروج',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                              ),
+                              onPressed: () async {
+                                await FirebaseAuth.instance.signOut();
+                                // navigate to login — ensure '/login' route exists in MaterialApp
+                                Navigator.of(context).pushNamedAndRemoveUntil(
+                                    '/login', (r) => false);
+                                // alternatively replace the line above with:
+                                // Navigator.of(context).pushAndRemoveUntil(
+                                //   MaterialPageRoute(builder: (_) => const LoginPage()),
+                                //   (_) => false,
+                                // );
+                              },
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -189,7 +227,6 @@ class SellerProfile extends StatelessWidget {
   Widget _buildTopBar(BuildContext context, {required String title}) {
     return Row(
       children: [
-     
         const SizedBox(width: 12),
         Expanded(
           child: Text(
