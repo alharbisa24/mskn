@@ -5,12 +5,12 @@ enum PropertyPurchaseType {
   rent,
   other,
 }
+
 enum PropertyType {
   villa,
   apartment,
   land,
 }
-
 
 extension PropertyPurchaseTypeExtension on PropertyPurchaseType {
   String get arabic {
@@ -30,13 +30,13 @@ class Property {
   final String title;
   final String price;
   final String image;
-  final String area; 
-  final String bathrooms; 
-  final String description; 
-  final String licence_number; 
-  final GeoPoint location_coordinate; 
-  final String location_name; 
-  final String propertyAge; 
+  final String area;
+  final String bathrooms;
+  final String description;
+  final String licence_number;
+  final GeoPoint location_coordinate;
+  final String location_name;
+  final String propertyAge;
   final PropertyPurchaseType purchaseType;
   final String rooms;
   final String streetWidth;
@@ -73,7 +73,30 @@ class Property {
         data['images'] is List ? data['images'] : [];
     final String imageUrl = imagesList.isNotEmpty && imagesList[0] is String
         ? imagesList[0]
-        : 'https://via.placeholder.com/300x400.png?text=No+Image'; 
+        : 'https://via.placeholder.com/300x400.png?text=No+Image';
+
+    double? parseCoordinate(dynamic value) {
+      if (value is num) return value.toDouble();
+      if (value is String) {
+        final normalised = value.replaceAll(RegExp(r'[^0-9.+-]'), '');
+        return double.tryParse(normalised);
+      }
+      return null;
+    }
+
+    GeoPoint resolveGeoPoint(dynamic raw) {
+      if (raw is GeoPoint) return raw;
+      if (raw is Map<String, dynamic>) {
+        final lat = raw['latitude'] ?? raw['lat'] ?? raw['Latitude'];
+        final lng = raw['longitude'] ?? raw['lng'] ?? raw['Longitude'];
+        final latValue = parseCoordinate(lat);
+        final lngValue = parseCoordinate(lng);
+        if (latValue != null && lngValue != null) {
+          return GeoPoint(latValue, lngValue);
+        }
+      }
+      return const GeoPoint(0, 0);
+    }
 
     // تحويل purchaseType من string إلى enum
     PropertyPurchaseType typeEnum;
@@ -90,6 +113,18 @@ class Property {
         typeEnum = PropertyPurchaseType.other;
     }
 
+    GeoPoint coordinate = resolveGeoPoint(data['location_coordinate']);
+
+    if (coordinate.latitude == 0 && coordinate.longitude == 0) {
+      final latFallback =
+          parseCoordinate(data['latitude'] ?? data['lat'] ?? data['Latitude']);
+      final lngFallback = parseCoordinate(
+          data['longitude'] ?? data['lng'] ?? data['Longitude']);
+      if (latFallback != null && lngFallback != null) {
+        coordinate = GeoPoint(latFallback, lngFallback);
+      }
+    }
+
     return Property(
       uid: doc.id,
       title: data['title'] ?? 'No Title',
@@ -100,7 +135,7 @@ class Property {
       bathrooms: data['bathrooms'] ?? '',
       description: data['description'] ?? '',
       licence_number: data['licence_number'] ?? '',
-      location_coordinate: data['location_coordinate'] ?? const GeoPoint(0,0),
+      location_coordinate: coordinate,
       propertyAge: data['propertyAge'] ?? '',
       purchaseType: typeEnum,
       rooms: data['rooms'] ?? '',

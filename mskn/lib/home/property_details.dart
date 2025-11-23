@@ -27,6 +27,8 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
   Map<String, dynamic>? seller_profile;
   bool isLoading = true;
+  bool _isAdmin = false;
+  bool _isDeleting = false;
 
   late LatLng position;
 
@@ -41,6 +43,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
     _loadSeller();
     _checkIfFavorite(); // 👈 هنا نستدعي الدالة فعليًا
+    _loadAdminStatus();
   }
 
   Future<void> _checkIfFavorite() async {
@@ -71,6 +74,159 @@ class _PropertyDetailsState extends State<PropertyDetails> {
       seller_profile = doc.data();
       isLoading = false;
     });
+  }
+
+  Future<void> _loadAdminStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final profileDoc = await FirebaseFirestore.instance
+          .collection('profile')
+          .doc(user.uid)
+          .get();
+
+      if (!profileDoc.exists) return;
+
+      final rank = (profileDoc.data()?['rank'] ?? '').toString().toLowerCase();
+      if (!mounted) return;
+      setState(() {
+        _isAdmin = rank == 'admin';
+      });
+    } catch (_) {
+      // Ignored: failure to read admin status shouldn't block the UI.
+    }
+  }
+
+  Future<void> _confirmDeleteProperty() async {
+    if (_isDeleting) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: Text(
+          'هل تريد حذف العقار "${widget.property.title}"؟ لا يمكن التراجع عن هذا الإجراء.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('حذف العقار'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      await _deleteProperty();
+    }
+  }
+
+  Future<void> _deleteProperty() async {
+    if (_isDeleting) return;
+
+    setState(() => _isDeleting = true);
+
+    final navigator = Navigator.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final propertyId = widget.property.uid;
+
+      final propertyRef = firestore.collection('property').doc(propertyId);
+
+      final favoritesRoots = await firestore.collection('favorites').get();
+      final favoriteDocs = <DocumentReference<Map<String, dynamic>>>[];
+
+      for (final userFavorites in favoritesRoots.docs) {
+        final candidate =
+            userFavorites.reference.collection('items').doc(propertyId);
+        final candidateSnap = await candidate.get();
+        if (candidateSnap.exists) {
+          favoriteDocs.add(candidate);
+        }
+      }
+
+      final reportsSnapshot = await firestore
+          .collection('reports')
+          .where('property_id', isEqualTo: propertyId)
+          .get();
+
+      final batch = firestore.batch();
+      batch.delete(propertyRef);
+
+      for (final favDoc in favoriteDocs) {
+        batch.delete(favDoc);
+      }
+
+      for (final report in reportsSnapshot.docs) {
+        batch.update(report.reference, {
+          'status': 'resolved',
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('تم الحذف'),
+          content: const Text('تم حذف العقار بنجاح.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                if (navigator.canPop()) {
+                  navigator.pop();
+                }
+              },
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      if (!mounted) return;
+
+      await showDialog(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('تعذر الحذف'),
+          content: Text('حدث خطأ غير متوقع: $error'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
   }
 
   @override
@@ -131,43 +287,47 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           // إذا كانت بالمفضلة نحذفها
                           await favRef.delete();
                           setState(() => isFavorite = false);
-                            showDialog(
+                          showDialog(
                             context: context,
                             builder: (BuildContext context) {
                               return AlertDialog(
                                 backgroundColor: Colors.white,
-                              title: const Text('تمت الإزالة'),
-                              content: const Text('تمت إزالة العقار من المفضلة بنجاح'),
-                              actions: [
-                                TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('حسناً'),
-                                ),
-                              ],
+                                title: const Text('تمت الإزالة'),
+                                content: const Text(
+                                    'تمت إزالة العقار من المفضلة بنجاح'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('حسناً'),
+                                  ),
+                                ],
                               );
                             },
-                            );
+                          );
                         } else {
                           await favRef.set({
                             'added_at': FieldValue.serverTimestamp(),
                           });
                           setState(() => isFavorite = true);
-                            showDialog(
+                          showDialog(
                             context: context,
                             builder: (BuildContext context) {
                               return AlertDialog(
-                              backgroundColor: Colors.white,
-                              title: const Text('تمت الإضافة'),
-                              content: const Text('تمت إضافة العقار إلى المفضلة بنجاح'),
-                              actions: [
-                                TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('حسناً'),
-                                ),
-                              ],
+                                backgroundColor: Colors.white,
+                                title: const Text('تمت الإضافة'),
+                                content: const Text(
+                                    'تمت إضافة العقار إلى المفضلة بنجاح'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
+                                    child: const Text('حسناً'),
+                                  ),
+                                ],
                               );
                             },
-                            );
+                          );
                         }
                       },
                     ),
@@ -206,6 +366,30 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                               box.localToGlobal(Offset.zero) & box.size,
                         );
                       },
+                    ),
+                  ),
+                ),
+                if (_isAdmin)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white.withOpacity(0.6),
+                      child: IconButton(
+                        tooltip: 'حذف العقار',
+                        icon:
+                            const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: _isDeleting ? null : _confirmDeleteProperty,
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.white.withOpacity(0.6),
+                    child: IconButton(
+                      icon: const Icon(Icons.flag_outlined,
+                          color: Colors.black87),
+                      onPressed: () => _showReportDialog(context),
                     ),
                   ),
                 ),
@@ -952,6 +1136,398 @@ class _PropertyDetailsState extends State<PropertyDetails> {
             )
           ],
         ));
+  }
+
+  void _showReportDialog(BuildContext context) {
+    String? selectedReportType;
+    final TextEditingController commentController = TextEditingController();
+
+    final List<Map<String, dynamic>> reportTypes = [
+      {
+        'value': 'fake_property',
+        'label': 'عقار وهمي',
+        'icon': Icons.warning_amber_rounded,
+        'color': Colors.orange,
+      },
+      {
+        'value': 'wrong_info',
+        'label': 'معلومات خاطئة',
+        'icon': Icons.info_outline,
+        'color': Colors.blue,
+      },
+      {
+        'value': 'spam',
+        'label': 'إعلان مزعج',
+        'icon': Icons.block,
+        'color': Colors.red,
+      },
+      {
+        'value': 'inappropriate',
+        'label': 'محتوى غير لائق',
+        'icon': Icons.report_outlined,
+        'color': Colors.purple,
+      },
+      {
+        'value': 'other',
+        'label': 'أخرى',
+        'icon': Icons.more_horiz,
+        'color': Colors.grey,
+      },
+    ];
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.flag,
+                              color: Colors.red.shade600,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'الإبلاغ عن مشكلة',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Report Types
+                      const Text(
+                        'نوع البلاغ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      ...reportTypes.map((type) {
+                        final isSelected = selectedReportType == type['value'];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () {
+                              setDialogState(() {
+                                selectedReportType = type['value'];
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? type['color'].withOpacity(0.1)
+                                    : Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? type['color']
+                                      : Colors.grey[200]!,
+                                  width: isSelected ? 2 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: type['color'].withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      type['icon'],
+                                      color: type['color'],
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      type['label'],
+                                      style: TextStyle(
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        color: isSelected
+                                            ? type['color']
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isSelected)
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: type['color'],
+                                      size: 20,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+
+                      const SizedBox(height: 20),
+
+                      // Comment field
+                      const Text(
+                        'تفاصيل إضافية (اختياري)',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: commentController,
+                        maxLines: 4,
+                        maxLength: 500,
+                        decoration: InputDecoration(
+                          hintText: 'أخبرنا المزيد عن المشكلة...',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF2575FC),
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                side: BorderSide(color: Colors.grey[300]!),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                'إلغاء',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: selectedReportType == null
+                                  ? null
+                                  : () async {
+                                      await _submitReport(
+                                        dialogContext,
+                                        selectedReportType!,
+                                        commentController.text.trim(),
+                                      );
+                                    },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade600,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                disabledBackgroundColor: Colors.grey[300],
+                              ),
+                              child: const Text(
+                                'ارسال البلاغ',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _submitReport(
+    BuildContext dialogContext,
+    String reportType,
+    String comment,
+  ) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        if (dialogContext.mounted) {
+          Navigator.of(dialogContext).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('يجب تسجيل الدخول للإبلاغ')),
+          );
+        }
+        return;
+      }
+
+      // Show loading indicator
+      if (dialogContext.mounted) {
+        showDialog(
+          context: dialogContext,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF2575FC),
+            ),
+          ),
+        );
+      }
+
+      // Submit report to Firebase
+      await FirebaseFirestore.instance.collection('reports').add({
+        'property_id': widget.property.uid,
+        'property_title': widget.property.title,
+        'reporter_id': user.uid,
+        'report_type': reportType,
+        'comment': comment.isEmpty ? null : comment,
+        'status': 'pending',
+        'created_at': FieldValue.serverTimestamp(),
+      });
+
+      // Close loading dialog
+      if (dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+        // Close report dialog
+        Navigator.of(dialogContext).pop();
+      }
+
+      // Show success message
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'تم ارسال البلاغ بنجاح',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'سيتم مراجعة البلاغ من قبلنا',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2575FC),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('حسنا'),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+        Navigator.of(dialogContext).pop();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ: $e')),
+        );
+      }
+    }
   }
 }
 

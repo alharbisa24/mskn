@@ -351,6 +351,27 @@ class _UserProfileState extends State<UserProfile> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 12),
+                // زر تسجيل الخروج
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.logout,
+                          color: Colors.white, size: 20),
+                      label: const Text('تسجيل الخروج',
+                          style: TextStyle(color: Colors.white, fontSize: 17)),
+                      onPressed: _signOut,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 24),
               ],
             ),

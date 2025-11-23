@@ -88,30 +88,56 @@ router.post('/ask', async (req, res) => {
           {
             Name: "حي النرجس، شمال الرياض، المملكة العربية السعودية",
             coordinates: [
-              { latitude: 24.7136, longitude: 46.6753 },
-              { latitude: 24.7140, longitude: 46.6760 },
-              { latitude: 24.7145, longitude: 46.6765 },
-              { latitude: 24.7150, longitude: 46.6770 }
+              { latitude: 24.7136, longitude: 46.6753 }
             ],
             color: "green"
           },
           {
             Name: "حي الياسمين، شمال الرياض، المملكة العربية السعودية",
             coordinates: [
-              { latitude: 24.7200, longitude: 46.6800 },
-              { latitude: 24.7210, longitude: 46.6810 },
-              { latitude: 24.7220, longitude: 46.6820 },
-              { latitude: 24.7230, longitude: 46.6830 }
+              { latitude: 24.7200, longitude: 46.6800 }
+            ],
+            color: "green"
+          },
+          {
+            Name: "حي العليا، شمال الرياض، المملكة العربية السعودية",
+            coordinates: [
+              { latitude: 24.7300, longitude: 46.6900 }
+            ],
+            color: "green"
+          },
+          {
+            Name: "حي الملقا، شمال الرياض، المملكة العربية السعودية",
+            coordinates: [
+              { latitude: 24.7400, longitude: 46.7000 }
             ],
             color: "green"
           },
           {
             Name: "حي الصحافة، شمال الرياض، المملكة العربية السعودية",
             coordinates: [
-              { latitude: 24.7255, longitude: 46.6855 },
-              { latitude: 24.7260, longitude: 46.6860 },
-              { latitude: 24.7265, longitude: 46.6865 },
-              { latitude: 24.7270, longitude: 46.6870 }
+              { latitude: 24.7255, longitude: 46.6855 }
+            ],
+            color: "yellow"
+          },
+          {
+            Name: "حي النفل، شمال الرياض، المملكة العربية السعودية",
+            coordinates: [
+              { latitude: 24.7350, longitude: 46.6950 }
+            ],
+            color: "yellow"
+          },
+          {
+            Name: "حي العريجاء، شمال الرياض، المملكة العربية السعودية",
+            coordinates: [
+              { latitude: 24.7500, longitude: 46.7100 }
+            ],
+            color: "red"
+          },
+          {
+            Name: "حي الشفا، شمال الرياض، المملكة العربية السعودية",
+            coordinates: [
+              { latitude: 24.7600, longitude: 46.7200 }
             ],
             color: "red"
           },
@@ -150,51 +176,43 @@ router.post('/ask', async (req, res) => {
       prompt += `${index + 1}. Latitude: ${point.latitude}, Longitude: ${point.longitude}\n`;
     });
     
-    prompt += `\nBased on the user's preferences and reference points, recommend 5-10 locations in Riyadh that match their criteria.\n`;
+    prompt += `\nBased on the user's preferences and reference points, recommend exactly 8 locations in Riyadh that match their criteria.\n`;
     prompt += `For each location, provide:\n`;
     prompt += `- Name: The full address/neighborhood name in Arabic\n`;
-    prompt += `- Coordinates: An array of 4 coordinate objects, each with latitude and longitude (must be near the reference points, within Riyadh area)\n`;
-    prompt += `- Color: "green" for all recommendations\n\n`;
-    prompt += `IMPORTANT: You must respond in the EXACT same format as the simulated response shown below. Return ONLY a valid JSON object with "points" array containing this exact structure:\n\n`;
+    prompt += `- Coordinates: An array with a single coordinate object containing latitude and longitude (must be near the reference points, within Riyadh area)\n`;
+    prompt += `- Color: You must provide exactly 4 locations with "green" (good matches), 2 locations with "yellow" (medium matches), and 2 locations with "red" (poor matches)\n\n`;
+    prompt += `IMPORTANT: You must respond in the EXACT same format as shown below. The example below shows the JSON structure only - DO NOT use these example names or coordinates. Generate your own location names and coordinates based on the user's preferences and reference points.\n\n`;
+    prompt += `Example format (DO NOT copy these exact values, use them only as a structure reference):\n`;
     prompt += `{\n`;
     prompt += `  "points": [\n`;
     prompt += `    {\n`;
-    prompt += `      "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",\n`;
+    prompt += `      "Name": "[Example: حي النرجس، شمال الرياض، المملكة العربية السعودية]",\n`;
     prompt += `      "coordinates": [\n`;
-    prompt += `        {"latitude": 24.7136, "longitude": 46.6753},\n`;
-    prompt += `        {"latitude": 24.7140, "longitude": 46.6760},\n`;
-    prompt += `        {"latitude": 24.7145, "longitude": 46.6765},\n`;
-    prompt += `        {"latitude": 24.7150, "longitude": 46.6770}\n`;
+    prompt += `        {"latitude": 24.7136, "longitude": 46.6753}\n`;
     prompt += `      ],\n`;
     prompt += `      "color": "green"\n`;
     prompt += `    },\n`;
     prompt += `    {\n`;
-    prompt += `      "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",\n`;
+    prompt += `      "Name": "[Example: حي الياسمين، شمال الرياض، المملكة العربية السعودية]",\n`;
     prompt += `      "coordinates": [\n`;
-    prompt += `        {"latitude": 24.7200, "longitude": 46.6800},\n`;
-    prompt += `        {"latitude": 24.7210, "longitude": 46.6810},\n`;
-    prompt += `        {"latitude": 24.7220, "longitude": 46.6820},\n`;
-    prompt += `        {"latitude": 24.7230, "longitude": 46.6830}\n`;
+    prompt += `        {"latitude": 24.7200, "longitude": 46.6800}\n`;
     prompt += `      ],\n`;
-    prompt += `      "color": "green"\n`;
+    prompt += `      "color": "yellow"\n`;
     prompt += `    },\n`;
     prompt += `    {\n`;
-    prompt += `      "Name": "حي النرجس، شمال الرياض، المملكة العربية السعودية",\n`;
+    prompt += `      "Name": "[Example: حي الصحافة، شمال الرياض، المملكة العربية السعودية]",\n`;
     prompt += `      "coordinates": [\n`;
-    prompt += `        {"latitude": 24.7255, "longitude": 46.6855},\n`;
-    prompt += `        {"latitude": 24.7260, "longitude": 46.6860},\n`;
-    prompt += `        {"latitude": 24.7265, "longitude": 46.6865},\n`;
-    prompt += `        {"latitude": 24.7270, "longitude": 46.6870}\n`;
+    prompt += `        {"latitude": 24.7255, "longitude": 46.6855}\n`;
     prompt += `      ],\n`;
-    prompt += `      "color": "green"\n`;
+    prompt += `      "color": "red"\n`;
     prompt += `    }\n`;
     prompt += `  ]\n`;
     prompt += `}\n\n`;
     prompt += `Each point must have:\n`;
     prompt += `- "Name": Full Arabic address/neighborhood name\n`;
-    prompt += `- "coordinates": An array of 4 objects, each with "latitude" and "longitude" properties\n`;
-    prompt += `- "color": Always "green"\n\n`;
-    prompt += `Make sure coordinates are realistic locations in Riyadh near the reference points. Return ONLY the JSON object with "points" array, no additional text or explanation.`;
+    prompt += `- "coordinates": An array with a single object containing "latitude" and "longitude" properties\n`;
+    prompt += `- "color": Must be exactly 4 "green", 2 "yellow", and 2 "red" (8 total points)\n\n`;
+    prompt += `IMPORTANT: Generate NEW location names and coordinates based on the user's preferences and reference points provided above. Do NOT copy the example names or coordinates. Make sure coordinates are realistic locations in Riyadh near the reference points. Return ONLY the JSON object with "points" array containing exactly 8 locations with the specified color distribution (4 green, 2 yellow, 2 red), no additional text or explanation.`;
 
     // Send to AI model using Hugging Face
     const modelName = process.env.HUGGINGFACE_MODEL || 'mistralai/Mistral-7B-Instruct-v0.2';
@@ -302,4 +320,6 @@ router.post('/ask', async (req, res) => {
 });
 
 module.exports = router;
+
+
 

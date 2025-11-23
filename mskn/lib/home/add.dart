@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -9,7 +10,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
 
 class AddPage extends StatefulWidget {
   const AddPage({super.key});
@@ -100,7 +100,7 @@ class _AddPageState extends State<AddPage> {
   }
 
   Future<List<String>> _uploadImages(String propertyId, String sellerId) async {
-    final storage = FirebaseStorage.instance;
+    final storage = FirebaseStorage.instanceFor(app: Firebase.app());
     final List<String> urls = [];
     for (int i = 0; i < _pickedImages.length; i++) {
       final file = File(_pickedImages[i].path);
