@@ -836,8 +836,8 @@ Widget _buildAiAssistantModal() {
                                     final coordinates = point['coordinates'] as List<dynamic>;
                                     if (coordinates.isNotEmpty) {
                                       final firstCoord = coordinates[0];
-                                      final lat = firstCoord['latitude'] as double;
-                                      final lng = firstCoord['longitude'] as double;
+                                      final lat = (firstCoord['latitude'] as num).toDouble();
+                                      final lng = (firstCoord['longitude'] as num).toDouble();
                                       final color = point['color'] as String? ?? 'green';
                                       
                                       Color circleColor;
@@ -1346,8 +1346,8 @@ Set<Circle> _buildColoredCircles() {
       final coordinates = point['coordinates'] as List<dynamic>;
       if (coordinates.isNotEmpty) {
         final firstCoord = coordinates[0];
-        final lat = firstCoord['latitude'] as double;
-        final lng = firstCoord['longitude'] as double;
+        final lat = (firstCoord['latitude'] as num).toDouble();
+        final lng = (firstCoord['longitude'] as num).toDouble();
         final color = point['color'] as String? ?? 'green';
         
         Color circleColor;
@@ -1796,6 +1796,7 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
           ],
         ),
         const SizedBox(height: 8),
+        // Ensure slider value is always within [min, max] range
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: const Color(0xFF2575FC),
@@ -1811,8 +1812,10 @@ Widget _buildGeneralInfoPage(StateSetter setModalState) {
             min: _minBudget,
             max: _maxBudget,
             divisions: 50,
-            value: _budget,
-            label: _formatCurrency(_budget),
+            value: _budget.clamp(_minBudget, _maxBudget),
+            label: _formatCurrency(
+              _budget.clamp(_minBudget, _maxBudget),
+            ),
             onChanged: (value) {
               setModalState(() => _budget = value);
             },

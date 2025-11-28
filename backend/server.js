@@ -1,4 +1,6 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+console.log('🔑 HUGGINGFACE_API_KEY loaded:', !!process.env.HUGGINGFACE_API_KEY);
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
