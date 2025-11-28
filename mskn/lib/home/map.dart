@@ -219,16 +219,6 @@ class _MapPageState extends State<MapPage> {
             final coordinate = district['coordinate'] as Map<String, dynamic>;
             final colorStr = district['color'] as String? ?? 'green';
 
-            double _toDouble(dynamic v) {
-              if (v == null) throw Exception('Missing coordinate');
-              if (v is double) return v;
-              if (v is num) return v.toDouble();
-              if (v is String)
-                return double.tryParse(v.replaceAll(',', '')) ??
-                    double.parse(v);
-              throw Exception('Unsupported coordinate type: ${v.runtimeType}');
-            }
-
             final lat = _toDouble(coordinate['latitude']);
             final lng = _toDouble(coordinate['longitude']);
 
@@ -671,6 +661,17 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  // Helper method to safely convert dynamic values to double
+  double _toDouble(dynamic v) {
+    if (v == null) throw Exception('Missing coordinate');
+    if (v is double) return v;
+    if (v is num) return v.toDouble();
+    if (v is String)
+      return double.tryParse(v.replaceAll(',', '')) ??
+          double.parse(v);
+    throw Exception('Unsupported coordinate type: ${v.runtimeType}');
+  }
+
   // AI Assistant variables and methods (keeping your original code)
   final PageController _aiPageController = PageController();
   int _currentAiPage = 0;
@@ -911,9 +912,9 @@ class _MapPageState extends State<MapPage> {
                                       if (coordinates.isNotEmpty) {
                                         final firstCoord = coordinates[0];
                                         final lat =
-                                            firstCoord['latitude'] as double;
+                                            _toDouble(firstCoord['latitude']);
                                         final lng =
-                                            firstCoord['longitude'] as double;
+                                            _toDouble(firstCoord['longitude']);
                                         final color =
                                             point['color'] as String? ??
                                                 'green';
@@ -1427,8 +1428,8 @@ class _MapPageState extends State<MapPage> {
         final coordinates = point['coordinates'] as List<dynamic>;
         if (coordinates.isNotEmpty) {
           final firstCoord = coordinates[0];
-          final lat = firstCoord['latitude'] as double;
-          final lng = firstCoord['longitude'] as double;
+          final lat = _toDouble(firstCoord['latitude']);
+          final lng = _toDouble(firstCoord['longitude']);
           final color = point['color'] as String? ?? 'green';
 
           Color circleColor;
@@ -1879,6 +1880,7 @@ class _MapPageState extends State<MapPage> {
             ],
           ),
           const SizedBox(height: 8),
+          // Ensure slider value is always within [min, max] range
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
               activeTrackColor: const Color(0xFF2575FC),
@@ -1894,8 +1896,10 @@ class _MapPageState extends State<MapPage> {
               min: _minBudget,
               max: _maxBudget,
               divisions: 50,
-              value: _budget,
-              label: _formatCurrency(_budget),
+              value: _budget.clamp(_minBudget, _maxBudget),
+              label: _formatCurrency(
+                _budget.clamp(_minBudget, _maxBudget),
+              ),
               onChanged: (value) {
                 setModalState(() => _budget = value);
               },
