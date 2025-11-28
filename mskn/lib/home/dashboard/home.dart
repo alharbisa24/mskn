@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mskn/home/dashboard/notifications_dashboard.dart';
 import 'package:mskn/home/dashboard/reports.dart';
+import 'package:mskn/home/dashboard/delete_users_page.dart';
+import 'package:mskn/home/dashboard/delete_sellers_page.dart';
 
 class DashboardHomeWidget extends StatefulWidget {
   const DashboardHomeWidget({super.key});
@@ -27,45 +29,36 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
 
   Future<void> _loadStatistics() async {
     try {
-      // Load users count
-      final usersSnapshot = await FirebaseFirestore.instance
-          .collection('profile')
-          .get();
-      
-      // Load marketers count
+      final usersSnapshot =
+          await FirebaseFirestore.instance.collection('profile').get();
       final marketersSnapshot = await FirebaseFirestore.instance
           .collection('profile')
           .where('rank', isEqualTo: 'marketer')
           .get();
-      
-      // Load reports count
-      final reportsSnapshot = await FirebaseFirestore.instance
-          .collection('reports')
-          .get();
-      
-      // Load notifications count
-      final notificationsSnapshot = await FirebaseFirestore.instance
-          .collection('notifications')
-          .get();
-      
-      // Load properties count
-      final propertiesSnapshot = await FirebaseFirestore.instance
-          .collection('property')
-          .get();
+      final reportsSnapshot =
+          await FirebaseFirestore.instance.collection('reports').get();
+      final notificationsSnapshot =
+          await FirebaseFirestore.instance.collection('notifications').get();
+      final propertiesSnapshot =
+          await FirebaseFirestore.instance.collection('property').get();
 
-      setState(() {
-        _totalUsers = usersSnapshot.docs.length;
-        _totalMarketers = marketersSnapshot.docs.length;
-        _totalReports = reportsSnapshot.docs.length;
-        _totalNotifications = notificationsSnapshot.docs.length;
-        _totalProperties = propertiesSnapshot.docs.length;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _totalUsers = usersSnapshot.docs.length;
+          _totalMarketers = marketersSnapshot.docs.length;
+          _totalReports = reportsSnapshot.docs.length;
+          _totalNotifications = notificationsSnapshot.docs.length;
+          _totalProperties = propertiesSnapshot.docs.length;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error loading statistics: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -116,7 +109,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                         Text(
+                        Text(
                           'نظرة عامة',
                           style: TextStyle(
                             fontSize: 24.sp,
@@ -133,7 +126,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         color: Colors.grey[600],
                       ),
                     ),
-                     SizedBox(height: 24.h),
+                    SizedBox(height: 24.h),
 
                     Column(
                       children: [
@@ -163,7 +156,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                           ],
                         ),
                         const SizedBox(height: 16),
-                        
+
                         // Bottom three cards
                         Row(
                           children: [
@@ -212,7 +205,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                         Text(
+                        Text(
                           'الادارة والتحكم',
                           style: TextStyle(
                             fontSize: 20.sp,
@@ -223,7 +216,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Management Cards
+                    // --- (1) Management Card: قائمة المستخدمين ---
                     _buildManagementCard(
                       context,
                       icon: Icons.people_alt_outlined,
@@ -236,14 +229,15 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         ],
                       ),
                       onPressed: () {
-                        // Navigate to users list
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('سيتم فتح قائمة المستخدمين')),
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) => const DeleteUsersPage()),
                         );
                       },
                     ),
                     const SizedBox(height: 16),
 
+                    // --- (2) Management Card: قائمة المسوقين (تم التعديل) ---
                     _buildManagementCard(
                       context,
                       icon: Icons.business_center_rounded,
@@ -256,14 +250,16 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         ],
                       ),
                       onPressed: () {
-                        // Navigate to marketers list
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('سيتم فتح قائمة المسوقين')),
+                        // الانتقال لصفحة المسوقين
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                              builder: (context) => const DeleteSellersPage()),
                         );
                       },
                     ),
                     const SizedBox(height: 16),
 
+                    // --- (3) Management Card: نظام الاشعارات ---
                     _buildManagementCard(
                       context,
                       icon: Icons.notifications_active_outlined,
@@ -286,6 +282,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                     ),
                     const SizedBox(height: 16),
 
+                    // --- (4) Management Card: بلاغات المستخدمين ---
                     _buildManagementCard(
                       context,
                       icon: Icons.flag_outlined,
@@ -298,9 +295,9 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         ],
                       ),
                       onPressed: () {
-                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (context) => ReportsDashboardWidget())
-                       );
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) =>
+                                const ReportsDashboardWidget()));
                       },
                     ),
                   ],
@@ -337,7 +334,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
       ),
       child: Stack(
         children: [
-          // Decorative circles
           Positioned(
             right: -20,
             top: -20,
@@ -362,14 +358,11 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
               ),
             ),
           ),
-          
-          // Content
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icon and trend
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -379,21 +372,11 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(
-                        icon,
-                        color: Colors.white,
-                        size: 28,
-                      ),
+                      child: Icon(icon, color: Colors.white, size: 28),
                     ),
-             
                   ],
                 ),
-                
-                SizedBox(
-                  height: 10.h,
-                ),
-                
-                // Value
+                SizedBox(height: 10.h),
                 Text(
                   value,
                   style: TextStyle(
@@ -404,8 +387,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                
-                // Title
                 Text(
                   title,
                   style: TextStyle(
@@ -433,10 +414,7 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 2,
-        ),
+        border: Border.all(color: color.withOpacity(0.2), width: 2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -450,23 +428,15 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 20,
-              ),
+              child: Icon(icon, color: color, size: 20),
             ),
-            
             const Spacer(),
-            
-            // Value
             Text(
               value,
               style: TextStyle(
@@ -476,8 +446,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
               ),
             ),
             const SizedBox(height: 4),
-            
-            // Title
             Text(
               title,
               style: TextStyle(
@@ -534,15 +502,9 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                   ),
                 ],
               ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 28,
-              ),
+              child: Icon(icon, color: Colors.white, size: 28),
             ),
             const SizedBox(width: 16),
-
-            // Text content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -559,7 +521,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                           ),
                         ),
                       ),
-                      
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -575,8 +536,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
               ),
             ),
             const SizedBox(width: 12),
-
-            // Arrow
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
