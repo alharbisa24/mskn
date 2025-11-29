@@ -1,5 +1,7 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 
 class SellerPropertiesPage extends StatelessWidget {
@@ -415,7 +417,6 @@ class SellerPropertiesPage extends StatelessWidget {
       ),
     );
   }
-
   String _formatCreatedAt(dynamic value) {
     if (value is Timestamp) {
       final DateTime dt = value.toDate();
@@ -431,43 +432,127 @@ class SellerPropertiesPage extends StatelessWidget {
     BuildContext context,
     QueryDocumentSnapshot<Map<String, dynamic>> doc,
   ) async {
-    final bool confirmed = await showDialog<bool>(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: const Text('حذف العقار'),
-              content: const Text('هل تريد بالتأكيد حذف هذا العقار؟ لا يمكن التراجع.'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('إلغاء'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text(
-                    'حذف',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
+    final data = doc.data();
+    final String title = _firstNonEmpty([
+      data['title'],
+      data['name'],
+      'عقار بدون اسم',
+    ]);
 
-    if (!confirmed) return;
+    await AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      animType: AnimType.scale,
+      title: 'تاكيد الحذف',
+      desc: 'هل تريد حذف العقار "$title"؟ لا يمكن التراجع عن هذا الإجراء.',
+      btnCancelText: 'إلغاء',
+      btnOkText: 'حذف العقار',
+      btnCancelOnPress: () {},
+      btnOkOnPress: () async {
+        await _deleteProperty(context, doc);
+      },
+      btnOkColor: Colors.red,
+      btnCancelColor: Colors.grey,
+    ).show();
+  }
+
+  Future<void> _deleteProperty(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    final navigator = Navigator.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
 
     try {
-      await doc.reference.delete();
-      final messenger = ScaffoldMessenger.maybeOf(context);
-      messenger?.showSnackBar(
-        const SnackBar(content: Text('تم حذف العقار')),
-      );
-    } catch (e) {
-      final messenger = ScaffoldMessenger.maybeOf(context);
-      messenger?.showSnackBar(
-        SnackBar(content: Text('فشل حذف العقار: $e')),
-      );
+      final data = doc.data();
+      final List<String> imageUrls = _extractImageUrls(data['images']);
+
+      if (imageUrls.isNotEmpty) {
+        for (String imageUrl in imageUrls) {
+          try {
+            final ref = FirebaseStorage.instance.refFromURL(imageUrl);
+            await ref.delete();
+          } catch (e) {
+            debugPrint('Error deleting image: $e');
+          }
+        }
+      }
+
+      final firestore = FirebaseFirestore.instance;
+      final propertyId = doc.id;
+
+      final propertyRef = firestore.collection('property').doc(propertyId);
+
+      final favoritesRoots = await firestore.collection('favorites').get();
+      final favoriteDocs = <DocumentReference<Map<String, dynamic>>>[];
+
+      for (final userFavorites in favoritesRoots.docs) {
+        final candidate =
+            userFavorites.reference.collection('items').doc(propertyId);
+        final candidateSnap = await candidate.get();
+        if (candidateSnap.exists) {
+          favoriteDocs.add(candidate);
+        }
+      }
+
+      final reportsSnapshot = await firestore
+          .collection('reports')
+          .where('property_id', isEqualTo: propertyId)
+          .get();
+
+      final batch = firestore.batch();
+      batch.delete(propertyRef);
+
+      for (final favDoc in favoriteDocs) {
+        batch.delete(favDoc);
+      }
+
+      for (final report in reportsSnapshot.docs) {
+        batch.update(report.reference, {
+          'status': 'resolved',
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      if (!context.mounted) return;
+
+      await AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.scale,
+        title: 'تم الحذف',
+        desc: 'تم حذف العقار بنجاح.',
+        btnOkText: 'حسناً',
+        btnOkOnPress: () {},
+        btnOkColor: Colors.green,
+      ).show();
+    } catch (error) {
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      if (!context.mounted) return;
+
+      await AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.scale,
+        title: 'تعذر الحذف',
+        desc: 'حدث خطأ غير متوقع: $error',
+        btnOkText: 'حسناً',
+        btnOkOnPress: () {},
+        btnOkColor: Colors.red,
+      ).show();
     }
   }
 }

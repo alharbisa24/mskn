@@ -1,17 +1,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:mskn/home/add.dart';
 import 'package:mskn/home/home.dart';
 import 'package:mskn/home/map.dart';
 import 'package:mskn/home/more.dart';
-import 'package:mskn/home/property_details.dart';
 import 'package:mskn/main.dart';
 import 'dart:async';
 
 import 'package:mskn/seller_profile.dart';
 import 'package:mskn/user_profile.dart';
-import 'package:mskn/seller_properties.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -65,7 +64,6 @@ class _HomePageState extends State<HomePage> {
   }
   
   void _onItemTapped(int index) {
-    // If "More" tab is tapped, show a mini popup (bottom sheet) instead of full page
     if (index == 4) {
       _showMoreSheet();
       return;
@@ -157,11 +155,13 @@ class _HomePageState extends State<HomePage> {
             unselectedFontSize: 11,
             items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded),
+                icon: HugeIcon(icon: 
+                HugeIcons.strokeRoundedHome01),
                 label: 'الرئيسية',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map),
+                icon: HugeIcon(icon: 
+                HugeIcons.strokeRoundedMapPinpoint01,),
                 label: 'الخريطة',
               ),
               BottomNavigationBarItem(
@@ -170,16 +170,19 @@ class _HomePageState extends State<HomePage> {
                     color: Color(0xFF1A73E8),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.add, color: Colors.white),
+                  child: HugeIcon(icon: 
+                  HugeIcons.strokeRoundedAdd01, color: Colors.white,),
                 ),
                 label: 'إضافة',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person_rounded),
+                icon: HugeIcon(icon: 
+                HugeIcons.strokeRoundedProfile02),
                 label: 'الحساب',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.more_horiz),
+                icon: HugeIcon(icon: 
+                HugeIcons.strokeRoundedMore01,),
                 label: 'أخرى',
               ),
             ],

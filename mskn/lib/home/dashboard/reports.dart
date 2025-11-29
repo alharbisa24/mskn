@@ -1,3 +1,4 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +13,7 @@ class ReportsDashboardWidget extends StatefulWidget {
 }
 
 class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
-  String _selectedFilter = 'all'; // all, pending, resolved, closed
+  String _selectedFilter = 'all'; 
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +37,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
       ),
       body: Column(
         children: [
-          // Filter tabs
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -56,7 +56,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
             ),
           ),
           
-          // Reports list
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: _getReportsStream(),
@@ -131,8 +130,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
       query = query.where('status', isEqualTo: _selectedFilter);
     }
 
-    // Don't add orderBy if there's a where clause on a different field
-    // OR make sure created_at is indexed with status field
     return query.snapshots();
   }
 
@@ -202,7 +199,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -256,13 +252,11 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
             ),
           ),
 
-          // Content
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Reporter Info
                 FutureBuilder<DocumentSnapshot>(
                   future: FirebaseFirestore.instance
                       .collection('profile')
@@ -367,7 +361,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
 
                 const SizedBox(height: 12),
 
-                // View Property Button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -387,7 +380,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
 
                 const SizedBox(height: 12),
 
-                // Comment
                 if (comment != null && comment.toString().isNotEmpty) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -409,7 +401,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
                   const SizedBox(height: 12),
                 ],
 
-                // Date
                 Row(
                   children: [
                     Icon(Icons.access_time, size: 16, color: Colors.grey[500]),
@@ -426,7 +417,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
                   ],
                 ),
 
-                // Actions (only for pending reports)
                 if (status == 'pending') ...[
                   const SizedBox(height: 16),
                   const Divider(),
@@ -617,40 +607,27 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
       });
 
       if (mounted) {
-  showDialog(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      title: Text("تم التحديث"),
-      content: Text('تم تحديث حالة البلاغ إلى: ${_getStatusLabel(newStatus)}'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("حسناً"),
-        )
-      ],
-    );
-  },
-
-        );
+  AwesomeDialog(
+    context: context,
+    dialogType: DialogType.success,
+    animType: AnimType.bottomSlide,
+    title: 'تم التحديث',
+    desc: 'تم تحديث حالة البلاغ إلى: ${_getStatusLabel(newStatus)}',
+    btnOkText: 'حسناً',
+    btnOkOnPress: () {},
+  ).show();
       }
     } catch (e) {
       if (mounted) {
-  showDialog(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      title: Text("حدث خطا"),
-      content: Text('حدث خطا $e'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("حسناً"),
-        )
-      ],
-    );
-  },
-);
+  AwesomeDialog(
+    context: context,
+    dialogType: DialogType.error,
+    animType: AnimType.bottomSlide,
+    title: 'حدث خطأ',
+    desc: 'فشل في تحديث حالة البلاغ: $e',
+    btnOkText: 'حسناً',
+    btnOkOnPress: () {},
+  ).show();
       }
     }
   }
@@ -735,22 +712,15 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
       });
 
       if (mounted) {
- showDialog(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      title: Text("تم الحذف"),
-      content: Text('تم حذف العقار بنجاح !'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("حسناً"),
-        )
-      ],
-    );
-  },
-
-        );
+  AwesomeDialog(
+    context: context,
+    dialogType: DialogType.success,
+    animType: AnimType.bottomSlide,
+    title: 'تم الحذف',
+    desc: 'تم حذف العقار بنجاح !',
+    btnOkText: 'حسناً',
+    btnOkOnPress: () {},
+  ).show();
       }
     } catch (e) {
       if (mounted) {
@@ -806,46 +776,33 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
           ),
         );
       } else {
- showDialog(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      title: Text("حدث خطا"),
-      content: Text('العقار غير موجود'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("حسناً"),
-        )
-      ],
-    );
-  },
-);
+  AwesomeDialog(
+    context: context,
+    dialogType: DialogType.error,
+    animType: AnimType.bottomSlide,
+    title: 'حدث خطأ',
+    desc: 'العقار غير موجود',
+    btnOkText: 'حسناً',
+    btnOkOnPress: () {},
+  ).show();
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Close loading
- showDialog(
-  context: context,
-  builder: (context) {
-    return AlertDialog(
-      title: Text("حدث خطا"),
-      content: Text('حدث خطا $e'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("حسناً"),
-        )
-      ],
-    );
-  },
-);
+        Navigator.pop(context);
+  AwesomeDialog(
+    context: context,
+    dialogType: DialogType.error,
+    animType: AnimType.bottomSlide,
+    title: 'حدث خطأ',
+    desc:' حدث خطا $e',
+    btnOkText: 'حسناً',
+    btnOkOnPress: () {},
+  ).show();
         
       }
     }
   }
 
-  // Add confirmation dialog for closing report
   void _showCloseReportDialog(String reportId) {
     showDialog(
       context: context,
@@ -895,7 +852,6 @@ class _ReportsDashboardWidgetState extends State<ReportsDashboardWidget> {
     );
   }
 
-  // Add confirmation dialog for resolving report
   void _showResolveReportDialog(String reportId) {
     showDialog(
       context: context,

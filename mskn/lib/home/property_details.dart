@@ -1,9 +1,12 @@
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:mskn/home/advertiser_properties_page.dart';
 import 'package:mskn/home/models/property.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
@@ -25,8 +28,10 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
   bool isFavorite = false;
 
-  Map<String, dynamic>? seller_profile;
+  Map<String, dynamic>? sellerProfile;
   bool isLoading = true;
+  bool _isAdmin = false;
+  bool _isDeleting = false;
 
   late LatLng position;
 
@@ -40,7 +45,8 @@ class _PropertyDetailsState extends State<PropertyDetails> {
     );
 
     _loadSeller();
-    _checkIfFavorite(); // 👈 هنا نستدعي الدالة فعليًا
+    _checkIfFavorite(); 
+    _loadAdminStatus();
   }
 
   Future<void> _checkIfFavorite() async {
@@ -68,9 +74,158 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         .get();
 
     setState(() {
-      seller_profile = doc.data();
+      sellerProfile = doc.data();
       isLoading = false;
     });
+  }
+
+  Future<void> _loadAdminStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final profileDoc = await FirebaseFirestore.instance
+          .collection('profile')
+          .doc(user.uid)
+          .get();
+
+      if (!profileDoc.exists) return;
+
+      final rank = (profileDoc.data()?['rank'] ?? '').toString().toLowerCase();
+      if (!mounted) return;
+      setState(() {
+        _isAdmin = rank == 'admin';
+      });
+    } catch (_) {
+    }
+  }
+
+  Future<void> _confirmDeleteProperty() async {
+    if (_isDeleting) return;
+
+    
+    await AwesomeDialog(
+      context: context,
+      dialogType: DialogType.warning,
+      animType: AnimType.scale,
+      title: 'تاكيد الحذف',
+      desc: 'هل تريد حذف العقار "${widget.property.title}"؟ لا يمكن التراجع عن هذا الإجراء.',
+      btnCancelText: 'إلغاء',
+      btnOkText: 'حذف العقار',
+      btnCancelOnPress: () {},
+      btnOkOnPress: () async {
+      await _deleteProperty();
+      },
+      btnOkColor: Colors.red,
+      btnCancelColor: Colors.grey
+    ).show();
+
+  }
+  Future<void> _deleteProperty() async {
+    if (_isDeleting) return;
+
+    setState(() => _isDeleting = true);
+
+    final navigator = Navigator.of(context);
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+
+         if (widget.property.images.isNotEmpty) {
+      for (String imageUrl in widget.property.images) {
+        try {
+          final ref = FirebaseStorage.instance.refFromURL(imageUrl);
+          await ref.delete();
+        } catch (e) {
+          print('Error deleting image: $e');
+        }
+      }
+    }
+
+      final firestore = FirebaseFirestore.instance;
+      final propertyId = widget.property.uid;
+
+      final propertyRef = firestore.collection('property').doc(propertyId);
+
+      final favoritesRoots = await firestore.collection('favorites').get();
+      final favoriteDocs = <DocumentReference<Map<String, dynamic>>>[];
+
+      for (final userFavorites in favoritesRoots.docs) {
+        final candidate =
+            userFavorites.reference.collection('items').doc(propertyId);
+        final candidateSnap = await candidate.get();
+        if (candidateSnap.exists) {
+          favoriteDocs.add(candidate);
+        }
+      }
+
+      final reportsSnapshot = await firestore
+          .collection('reports')
+          .where('property_id', isEqualTo: propertyId)
+          .get();
+
+      final batch = firestore.batch();
+      batch.delete(propertyRef);
+
+      for (final favDoc in favoriteDocs) {
+        batch.delete(favDoc);
+      }
+
+      for (final report in reportsSnapshot.docs) {
+        batch.update(report.reference, {
+          'status': 'resolved',
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await batch.commit();
+
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      if (!mounted) return;
+
+   AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.scale,
+        title: 'تم الحذف',
+        desc: 'تم حذف العقار بنجاح.',
+        btnOkText: 'حسناً',
+        btnOkOnPress: () {
+          if (navigator.canPop()) {
+            navigator.pop();
+          }
+        },
+        btnOkColor: Colors.green,
+            ).show();
+    } catch (error) {
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      if (!mounted) return;
+
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.error,
+        animType: AnimType.scale,
+        title: 'تعذر الحذف',
+        desc: 'حدث خطأ غير متوقع: $error',
+        btnOkText: 'حسناً',
+        btnOkOnPress: () {},
+        btnOkColor: Colors.red,
+      ).show();
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
   }
 
   @override
@@ -81,17 +236,17 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              pinned: true, // يجعل الـ AppBar ثابتًا في الأعلى أثناء التمرير
-              floating: true, // يسمح له بالظهور عند التمرير للأعلى
+              pinned: true, 
+              floating: true,
               snap:
-                  true, // يتيح له "القفز" عند التمرير للأعلى إذا استخدم floating
-              expandedHeight: 0, // لا حاجة لتوسيع
-              backgroundColor: Colors.transparent, // خلفية شفافة
-              elevation: 0, // بدون ظل
+                  true,
+              expandedHeight: 0, 
+              backgroundColor: Colors.transparent, 
+              elevation: 0, 
               leading: Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: CircleAvatar(
-                  backgroundColor: Colors.white.withOpacity(0.6), // نصف شفاف
+                  backgroundColor: Colors.white.withOpacity(0.6), 
                   child: IconButton(
                     icon: const Icon(Icons.close, color: Colors.black87),
                     onPressed: () => Navigator.of(context).pop(),
@@ -128,46 +283,33 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         final doc = await favRef.get();
 
                         if (doc.exists) {
-                          // إذا كانت بالمفضلة نحذفها
                           await favRef.delete();
                           setState(() => isFavorite = false);
-                            showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                backgroundColor: Colors.white,
-                              title: const Text('تمت الإزالة'),
-                              content: const Text('تمت إزالة العقار من المفضلة بنجاح'),
-                              actions: [
-                                TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('حسناً'),
-                                ),
-                              ],
-                              );
-                            },
-                            );
+                           AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.scale,
+        title: 'تمت الازاله',
+        desc: 'تمت ازاله العقار من المفضلة بنجاح',
+        btnOkText: 'حسناً',
+        btnOkOnPress: () {},
+        btnOkColor: Colors.red,
+      ).show();
                         } else {
                           await favRef.set({
                             'added_at': FieldValue.serverTimestamp(),
                           });
                           setState(() => isFavorite = true);
-                            showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                              backgroundColor: Colors.white,
-                              title: const Text('تمت الإضافة'),
-                              content: const Text('تمت إضافة العقار إلى المفضلة بنجاح'),
-                              actions: [
-                                TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('حسناً'),
-                                ),
-                              ],
-                              );
-                            },
-                            );
+                                                 AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.scale,
+        title: 'تمت الاضفة',
+        desc: 'تمت اضافة العقار لقائمة المفضلة بنجاح',
+        btnOkText: 'حسناً',
+        btnOkOnPress: () {},
+        btnOkColor: Colors.red,
+      ).show();
                         }
                       },
                     ),
@@ -209,12 +351,26 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                     ),
                   ),
                 ),
+if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.uid)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white.withOpacity(0.6),
+                      child: IconButton(
+                        tooltip: 'حذف العقار',
+                        icon:
+                            const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: _isDeleting ? null : _confirmDeleteProperty,
+                      ),
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: CircleAvatar(
                     backgroundColor: Colors.white.withOpacity(0.6),
                     child: IconButton(
-                      icon: const Icon(Icons.flag_outlined, color: Colors.black87),
+                      icon: const Icon(Icons.flag_outlined,
+                          color: Colors.black87),
                       onPressed: () => _showReportDialog(context),
                     ),
                   ),
@@ -256,7 +412,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           );
                         }).toList(),
                       ),
-                      // Image counter indicator
                       Positioned(
                         bottom: 16,
                         right: 16,
@@ -276,7 +431,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           ),
                         ),
                       ),
-                      // Image navigation buttons
                       Positioned(
                         left: 8,
                         top: 0,
@@ -318,7 +472,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // عنوان العقار
                             Expanded(
                               child: Padding(
                                 padding: const EdgeInsets.only(right: 8.0),
@@ -336,11 +489,9 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                               ),
                             ),
 
-                            // السعر ونوع البيع
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                // السعر
                                 Text(
                                   '${widget.property.price} ريال',
                                   style: const TextStyle(
@@ -352,7 +503,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
                                 const SizedBox(height: 6),
 
-                                // نوع البيع (شراء / إيجار)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 14, vertical: 6),
@@ -377,7 +527,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
                         SizedBox(height: 12.h),
 
-                        // Location
                         Row(
                           children: [
                             const Icon(Icons.location_on,
@@ -397,17 +546,14 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
                         SizedBox(height: 24.h),
 
-                        // Key Features
                         _buildKeyFeatures(),
 
                         SizedBox(height: 24.h),
 
-                        // Map view
                         _buildMapView(),
 
                         SizedBox(height: 24.h),
 
-                        // Description
                         Text(
                           'وصف العقار',
                           style: TextStyle(
@@ -430,7 +576,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
                         SizedBox(height: 24.h),
 
-                        // Seller details
                         _buildSellerDetails(),
 
                         SizedBox(height: 100.h),
@@ -473,7 +618,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                             icon: HugeIcons.strokeRoundedWhatsapp, size: 18),
                         label: const Text('واتساب'),
                         onPressed: () {
-                          final phoneNumber = seller_profile?['phone'] ?? '';
+                          final phoneNumber = sellerProfile?['phone'] ?? '';
                           launchUrl(Uri.parse('https://wa.me/$phoneNumber'));
                         },
                       ),
@@ -492,7 +637,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         icon: const Icon(Icons.phone, size: 18),
                         label: const Text('اتصال'),
                         onPressed: () {
-                          final phoneNumber = seller_profile?['phone'] ?? '';
+                          final phoneNumber = sellerProfile?['phone'] ?? '';
                           launchUrl(Uri.parse('tel:$phoneNumber'));
                         },
                       ),
@@ -511,13 +656,13 @@ class _PropertyDetailsState extends State<PropertyDetails> {
       ),
       child: Column(
         children: [
-          // First row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Expanded(
                   child: _buildKeyFeatureItem(
                       Icons.king_bed_outlined, '${widget.property.rooms} غرف')),
+             if(widget.property.bathrooms != '')
               Expanded(
                   child: _buildKeyFeatureItem(Icons.bathtub_outlined,
                       '${widget.property.bathrooms} حمامات')),
@@ -527,7 +672,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
             ],
           ),
           const SizedBox(height: 16),
-          // Second row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -536,7 +680,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                       '${widget.property.streetWidth} م')),
               Expanded(
                   child: _buildKeyFeatureItem(
-                      Icons.calendar_month, '${widget.property.propertyAge}')),
+                      Icons.calendar_month, '${widget.property.propertyAge} سنين')),
               Expanded(
                   child: _buildKeyFeatureItem(
                       Icons.category, '${widget.property.type}')),
@@ -660,8 +804,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
   }
 
   Widget _buildSellerDetails() {
-    if (isLoading || seller_profile == null) {
-      // عرض shimmer loader أثناء التحميل
+    if (isLoading || sellerProfile == null) {
       return Shimmer.fromColors(
         baseColor: Colors.grey[300]!,
         highlightColor: Colors.grey[100]!,
@@ -729,15 +872,14 @@ class _PropertyDetailsState extends State<PropertyDetails> {
       );
     }
 
-    // إذا البيانات جاهزة، نرجع نفس Widget الأصلي
-    final String sellerInitials = (seller_profile?['name'] ?? 'مستخدم')
+    final String sellerInitials = (sellerProfile?['name'] ?? 'مستخدم')
         .split(' ')
         .take(2)
         .map((e) => e.isNotEmpty ? e[0] : '')
         .join('')
         .toUpperCase();
 
-    final bool isSeller = seller_profile?['rank'] == 'seller';
+    final bool isSeller = sellerProfile?['rank'] == 'seller';
 
     return Container(
         padding: const EdgeInsets.all(16),
@@ -750,7 +892,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
           children: [
             Row(
               children: [
-                // Google-style avatar with initials
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: const Color(0xFF1A73E8),
@@ -769,7 +910,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        seller_profile?['name'] ?? 'مستخدم',
+                        sellerProfile?['name'] ?? 'مستخدم',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -803,14 +944,39 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                     ],
                   ),
                 ),
+                GestureDetector(
+                  onTap: (){
+                         Navigator.of(context).push(
+                           MaterialPageRoute(
+                    builder: (_) => AdvertiserPropertiesPage(
+                      advertiserId: widget.property.seller_id ?? '',
+                      advertiserName: sellerProfile?['name'] ?? 'مستخدم',
+                    ),
+                          )
+                         );
+                  
+                  },
+                  child: Row(
+                    children: [
+                      Text("عرض المزيد", style: TextStyle(
+                        color: Colors.blueAccent
+                      ),),
+                      SizedBox(
+                        width: 4,
+                      ),
+                      Icon(Icons.arrow_forward_ios, size: 12, color: Colors.blueAccent
+                      ),
+                    ],
+                  ),
+                )
               ],
             ),
+  
             if (isSeller) ...[
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
 
-              // License details
               Row(
                 children: [
                   Expanded(
@@ -826,7 +992,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          seller_profile?['license_number'],
+                          sellerProfile?['license_number'],
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -848,7 +1014,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          seller_profile?['licence_expired'],
+                          sellerProfile?['licence_expired'],
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -878,7 +1044,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                           icon: HugeIcons.strokeRoundedWhatsapp, size: 18),
                       label: const Text('واتساب'),
                       onPressed: () {
-                        final phoneNumber = seller_profile?['phone'] ?? '';
+                        final phoneNumber = sellerProfile?['phone'] ?? '';
                         launchUrl(Uri.parse('https://wa.me/$phoneNumber'));
                       },
                     ),
@@ -897,7 +1063,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                       icon: const Icon(Icons.phone, size: 18),
                       label: const Text('اتصال'),
                       onPressed: () {
-                        final phoneNumber = seller_profile?['phone'] ?? '';
+                        final phoneNumber = sellerProfile?['phone'] ?? '';
                         launchUrl(Uri.parse('tel:$phoneNumber'));
                       },
                     ),
@@ -922,7 +1088,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         size: 18),
                     onPressed: () {
                       launchUrl(Uri.parse(
-                          'https://twitter.com/${seller_profile?['x']}'));
+                          'https://twitter.com/${sellerProfile?['x']}'));
                     },
                   ),
                 ),
@@ -938,7 +1104,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         size: 18),
                     onPressed: () {
                       launchUrl(Uri.parse(
-                          'https://instagram.com/${seller_profile?['instagram']}'));
+                          'https://instagram.com/${sellerProfile?['instagram']}'));
                     },
                   ),
                 ),
@@ -954,7 +1120,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         size: 18),
                     onPressed: () {
                       launchUrl(Uri.parse(
-                          'https://snapchat.com/add/${seller_profile?['snapchat']}'));
+                          'https://snapchat.com/add/${sellerProfile?['snapchat']}'));
                     },
                   ),
                 ),
@@ -1045,8 +1211,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                                   ),
                                 ),
                                 SizedBox(height: 4),
-                         
-                                
                               ],
                             ),
                           ),
@@ -1054,7 +1218,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Report Types
                       const Text(
                         'نوع البلاغ',
                         style: TextStyle(
@@ -1132,7 +1295,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
                       const SizedBox(height: 20),
 
-                      // Comment field
                       const Text(
                         'تفاصيل إضافية (اختياري)',
                         style: TextStyle(
@@ -1175,9 +1337,11 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                         children: [
                           Expanded(
                             child: OutlinedButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(),
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 side: BorderSide(color: Colors.grey[300]!),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -1206,7 +1370,8 @@ class _PropertyDetailsState extends State<PropertyDetails> {
                                     },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red.shade600,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -1281,72 +1446,24 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         Navigator.of(dialogContext).pop();
       }
 
-      // Show success message
       if (mounted) {
-        showDialog(
+        AwesomeDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.check_circle,
-                    color: Colors.green.shade600,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'تم ارسال البلاغ بنجاح',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'سيتم مراجعة البلاغ من قبلنا',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2575FC),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text('حسنا'),
-                ),
-              ),
-            ],
-          ),
-        );
+          dialogType: DialogType.success,
+          animType: AnimType.scale,
+          title: 'تم ارسال البلاغ بنجاح',
+          desc: 'سيتم مراجعة البلاغ من قبلنا',
+          btnOkText: 'حسناً',
+          btnOkOnPress: () {},
+          btnOkColor: Colors.green,
+        ).show();
       }
     } catch (e) {
       if (dialogContext.mounted) {
-        Navigator.of(dialogContext).pop(); 
-        Navigator.of(dialogContext).pop(); 
+        Navigator.of(dialogContext).pop();
+        Navigator.of(dialogContext).pop();
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('حدث خطأ: $e')),

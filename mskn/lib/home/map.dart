@@ -1,19 +1,19 @@
-import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
-import 'dart:io';
 
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:mskn/home/models/property.dart';
+import 'package:mskn/home/property_details.dart';
 
 final Dio _dio = Dio();
 
@@ -34,131 +34,245 @@ class _MapPageState extends State<MapPage> {
   final Set<Circle> _districts = {};
   final Set<Marker> _markers = {};
   bool _isLoading = true;
-  final Random _random = Random();
 
-  // Firebase
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final List<String> _propertyTypes = [
-    'فيلا',
-    'شقة',
-    'قصر',
-    'استديو',
-    'دوبلكس',
-  ];
+  final NumberFormat _decimalPriceFormat = NumberFormat.decimalPattern('ar');
 
-  LatLng _getRandomLocation() {
-    const double minLat = 24.5700;
-    const double maxLat = 24.8500;
-    const double minLng = 46.6000;
-    const double maxLng = 46.8000;
+  final Map<String, BitmapDescriptor> _markerIconCache = {};
+  final Map<String, String> _markerIconSignatures = {};
+  StreamSubscription<Set<Marker>>? _markerSubscription;
+  bool _hasShownMarkerError = false;
 
-    final double lat = minLat + _random.nextDouble() * (maxLat - minLat);
-    final double lng = minLng + _random.nextDouble() * (maxLng - minLng);
+  Future<BitmapDescriptor> _createMarkerIcon(Property property) async {
+    const double horizontalPadding = 12;
+    const double pointerHeight = 18;
+    const double minWidth = 84;
 
-    return LatLng(lat, lng);
-  }
+    final String priceLabel = '${_formatPriceDisplay(property.price)} ر.س';
 
-  Future<BitmapDescriptor> _createMarkerIcon(String price, Color color) async {
-    final PictureRecorder pictureRecorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(pictureRecorder);
-    final double width = 120;
-    final double height = 60;
-    final double borderRadius = 20;
-
-    final Paint paint = Paint()..color = color;
-    final RRect rRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, width, height),
-      Radius.circular(borderRadius),
-    );
-    canvas.drawRRect(rRect, paint);
-
-    final Paint shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.2)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawRRect(rRect.shift(const Offset(2, 3)), shadowPaint);
-
-    final TextPainter textPainter = TextPainter(
+    final TextPainter pricePainter = TextPainter(
       text: TextSpan(
-        text: price,
-        style: const TextStyle(
+        text: priceLabel,
+        style: TextStyle(
           color: Colors.white,
-          fontSize: 30,
+          fontSize: 10.sp,
           fontWeight: FontWeight.bold,
         ),
       ),
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.rtl,
+      textDirection: ui.TextDirection.rtl,
+      maxLines: 1,
+      ellipsis: '…',
+    )..layout();
+
+    final double bubbleWidth = pricePainter.width + (horizontalPadding * 2);
+    final double width = bubbleWidth < minWidth ? minWidth : bubbleWidth;
+    final double bubbleHeight = pricePainter.height + 16;
+    final double totalHeight = bubbleHeight + pointerHeight;
+
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder);
+
+    final Paint shadowPaint = Paint()
+      ..color = const Color(0x33000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    final RRect bubbleRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, width, bubbleHeight),
+      const Radius.circular(20),
     );
-    textPainter.layout(minWidth: width, maxWidth: width);
-    textPainter.paint(canvas, Offset(0, (height - textPainter.height) / 2));
 
-    final ui.Image image = await pictureRecorder
-        .endRecording()
-        .toImage(width.toInt(), height.toInt());
+    // Shadow for bubble.
+    canvas.drawRRect(bubbleRect.shift(const Offset(0, 3)), shadowPaint);
+
+    // Shadow for pointer.
+    final Path pointerShadow = Path()
+      ..moveTo(width / 2 - 12, bubbleHeight)
+      ..lineTo(width / 2, bubbleHeight + pointerHeight)
+      ..lineTo(width / 2 + 12, bubbleHeight)
+      ..close();
+    canvas.drawPath(pointerShadow.shift(const Offset(0, 3)), shadowPaint);
+
+    final Color markerColor = _markerColor(property);
+    final Paint fillPaint = Paint()..color = markerColor;
+
+    // Marker bubble.
+    canvas.drawRRect(bubbleRect, fillPaint);
+
+    // Pointer triangle.
+    final Path pointer = Path()
+      ..moveTo(width / 2 - 12, bubbleHeight)
+      ..lineTo(width / 2, bubbleHeight + pointerHeight)
+      ..lineTo(width / 2 + 12, bubbleHeight)
+      ..close();
+    canvas.drawPath(pointer, fillPaint);
+
+    // Price text centered inside bubble.
+    final double textX = (width - pricePainter.width) / 2;
+    final double textY = (bubbleHeight - pricePainter.height) / 2;
+    pricePainter.paint(canvas, Offset(textX, textY));
+
+    final ui.Image markerImage = await recorder.endRecording().toImage(
+          width.ceil(),
+          totalHeight.ceil(),
+        );
     final ByteData? byteData =
-        await image.toByteData(format: ui.ImageByteFormat.png);
+        await markerImage.toByteData(format: ui.ImageByteFormat.png);
 
-    return BitmapDescriptor.fromBytes(byteData!.buffer.asUint8List());
+    return BitmapDescriptor.bytes(byteData!.buffer.asUint8List());
   }
 
-  Future<void> _loadMarkers() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    final List<Color> markerColors = [
-      Colors.blue,
-      Colors.green,
-      Colors.red,
-      Colors.orange,
-      Colors.purple,
-    ];
-
-    for (int i = 0; i < 15; i++) {
-      final LatLng position = _getRandomLocation();
-      final String price = '1000';
-      final String propertyType =
-          _propertyTypes[_random.nextInt(_propertyTypes.length)];
-      final Color markerColor =
-          markerColors[_random.nextInt(markerColors.length)];
-
-      final BitmapDescriptor markerIcon =
-          await _createMarkerIcon(price, markerColor);
-
-      _markers.add(
-        Marker(
-          markerId: MarkerId('property_$i'),
-          position: position,
-          icon: markerIcon,
-          infoWindow: InfoWindow(
-            title: '$propertyType للبيع',
-            snippet: '$price ريال - ${_random.nextInt(5) + 1} غرف',
-          ),
-          onTap: () {
-            _showPropertyBottomSheet(
-              imageUrl:
-                  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
-              title: 'فيلا فاخرة شمال الرياض',
-              price: price,
-              type: propertyType,
-              saleType: _random.nextBool() ? 'شراء' : 'إيجار',
-              area: 320 + _random.nextInt(180),
-              rooms: _random.nextInt(5) + 2,
-              bathrooms: _random.nextInt(3) + 1,
-              streetWidth: 10 + _random.nextInt(15),
-              description:
-                  'فيلا مميزة تقع في موقع استراتيجي قريب من الخدمات والمدارس، تصميم عصري وتشطيبات فاخرة.',
-            );
-          },
-        ),
-      );
+  Color _markerColor(Property property) {
+    switch (property.purchaseType) {
+      case PropertyPurchaseType.sell:
+        return const Color(0xFF2575FC);
+      case PropertyPurchaseType.rent:
+        return const Color(0xFF34A853);
+      case PropertyPurchaseType.other:
+        break;
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    final String type = property.type.trim().toLowerCase();
+    if (type.contains('فيلا') || type.contains('villa')) {
+      return const Color(0xFF6A11CB);
+    }
+    if (type.contains('شقة') || type.contains('apartment')) {
+      return const Color(0xFFFB8C00);
+    }
+    return const Color(0xFF1A73E8);
+  }
+
+
+
+
+  int _parseNumericValue(String? raw) {
+    if (raw == null) return 0;
+    final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (cleaned.isEmpty) return 0;
+    return int.tryParse(cleaned) ?? 0;
+  }
+
+  String _formatPriceDisplay(String raw) {
+    final value = _parseNumericValue(raw);
+    if (value == 0) {
+      return raw.isNotEmpty ? raw : '0';
+    }
+    return _decimalPriceFormat.format(value);
+  }
+
+  void _listenToPropertyUpdates() {
+    _markerSubscription?.cancel();
+    _hasShownMarkerError = false;
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
+
+    final stream = _firestore.collection('property').snapshots();
+    _markerSubscription = stream
+        .asyncMap((snapshot) => _buildMarkersFromDocs(snapshot.docs))
+        .listen(
+      (loadedMarkers) {
+        if (!mounted) return;
+        setState(() {
+          _markers
+            ..clear()
+            ..addAll(loadedMarkers);
+          _isLoading = false;
+        });
+      },
+      onError: (error) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        if (!_hasShownMarkerError) {
+          _hasShownMarkerError = true;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('تعذر تحميل العقارات: $error')),
+          );
+        }
+      },
+    );
+  }
+
+  Future<Set<Marker>> _buildMarkersFromDocs(
+    Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
+    final Set<Marker> loadedMarkers = {};
+    final Set<String> activePropertyIds = {};
+
+    for (final doc in docs) {
+      try {
+        final property = Property.fromFirestore(doc);
+        activePropertyIds.add(property.uid);
+        final geoPoint = property.location_coordinate;
+
+        if (geoPoint.latitude == 0 && geoPoint.longitude == 0) {
+          continue;
+        }
+
+        final LatLng position =
+            LatLng(geoPoint.latitude.toDouble(), geoPoint.longitude.toDouble());
+        final String signature = _markerSignature(property);
+
+        BitmapDescriptor icon;
+        final BitmapDescriptor? cachedIcon = _markerIconCache[property.uid];
+        final String? cachedSignature = _markerIconSignatures[property.uid];
+
+        if (cachedIcon != null && cachedSignature == signature) {
+          icon = cachedIcon;
+        } else {
+          try {
+            icon = await _createMarkerIcon(property);
+          } catch (error, stackTrace) {
+            debugPrint('⚠️ Failed to build marker for ${property.uid}: $error');
+            debugPrintStack(stackTrace: stackTrace);
+            icon = BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueAzure,
+            );
+          }
+          _markerIconCache[property.uid] = icon;
+          _markerIconSignatures[property.uid] = signature;
+        }
+
+        loadedMarkers.add(
+          Marker(
+            markerId: MarkerId('property_${property.uid}'),
+            position: position,
+            icon: icon,
+            onTap: () => _openPropertyDetails(property),
+          ),
+        );
+      } catch (error, stackTrace) {
+        debugPrint('⚠️ Failed to process property ${doc.id}: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
+
+    _markerIconCache.removeWhere(
+      (key, _) => !activePropertyIds.contains(key),
+    );
+    _markerIconSignatures.removeWhere(
+      (key, _) => !activePropertyIds.contains(key),
+    );
+
+    return loadedMarkers;
+  }
+
+  String _markerSignature(Property property) {
+    return [
+      property.title,
+      property.price,
+      property.image,
+      property.rooms,
+      property.bathrooms,
+      property.area,
+      property.type,
+      property.purchaseType.name,
+      property.location_name,
+      property.propertyAge,
+    ].join('|');
   }
 
   void _onMapCreated(GoogleMapController controller) {
@@ -170,8 +284,8 @@ class _MapPageState extends State<MapPage> {
   @override
   void initState() {
     super.initState();
-    _checkUserPreferences(); // Check Firebase first
-    _loadMarkers();
+    _checkUserPreferences();
+    _listenToPropertyUpdates();
 
     _yesNoAnswers = List.generate(
       _aiQuestions.length,
@@ -179,7 +293,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // 🔥 Check if user has saved preferences
   Future<void> _checkUserPreferences() async {
     try {
       final user = _auth.currentUser;
@@ -189,23 +302,18 @@ class _MapPageState extends State<MapPage> {
       }
 
       final userId = user.uid;
-      print('🔍 Checking preferences for user: $userId');
 
       final docSnapshot =
           await _firestore.collection('preferred_areas').doc(userId).get();
 
       if (docSnapshot.exists && docSnapshot.data() != null) {
-        print('✅ Found saved preferences - loading circles');
         await _loadUserPreferences(docSnapshot.data()!);
-      } else {
-        print('❌ No saved preferences found');
-      }
+      } 
     } catch (e) {
-      print('❌ Error checking preferences: $e');
+      print('Error checking preferences: $e');
     }
   }
 
-  // 🔥 Load user preferences and color the map
   Future<void> _loadUserPreferences(Map<String, dynamic> data) async {
     try {
       final districts = data['districts'] as List<dynamic>?;
@@ -228,7 +336,6 @@ class _MapPageState extends State<MapPage> {
                 circleColor = Colors.green;
                 break;
               case 'yellow':
-              case 'orange':
                 circleColor = Colors.amber;
                 break;
               case 'red':
@@ -251,15 +358,15 @@ class _MapPageState extends State<MapPage> {
           }
         });
 
-        print('✅ Loaded ${districts.length} circles from Firebase');
       }
     } catch (e) {
-      print('❌ Error loading preferences: $e');
+      print(' Error loading preferences: $e');
     }
   }
 
   @override
   void dispose() {
+    _markerSubscription?.cancel();
     search.dispose();
     super.dispose();
   }
@@ -446,6 +553,7 @@ class _MapPageState extends State<MapPage> {
               child: Column(
                 children: [
                   FloatingActionButton(
+                    heroTag: 'zoomInButton', // Unique heroTag
                     mini: true,
                     backgroundColor: Colors.white,
                     onPressed: () {
@@ -455,6 +563,7 @@ class _MapPageState extends State<MapPage> {
                   ),
                   const SizedBox(height: 8),
                   FloatingActionButton(
+                    heroTag: 'zoomOutButton', // Unique heroTag
                     mini: true,
                     backgroundColor: Colors.white,
                     onPressed: () {
@@ -471,194 +580,51 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  void _showPropertyBottomSheet({
-    required String imageUrl,
-    required String title,
-    required String price,
-    required String type,
-    required String saleType,
-    required int area,
-    required int rooms,
-    required int bathrooms,
-    required int streetWidth,
-    required String description,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: false,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black12,
-                blurRadius: 10,
-                offset: Offset(0, -4),
+  void _openPropertyDetails(Property property) {
+    if (!mounted) return;
+  showModalBottomSheet(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent, 
+  builder: (context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, 
+      onTap: () => Navigator.of(context).pop(),
+      child: Stack(
+        children: [
+
+
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(25),
+                ),
               ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
+              child: ClipRRect(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(25)),
-                child: Image.network(
-                  imageUrl,
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                ),
-              ),
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF2575FC), Color(0xFF2575FC)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$price ر.س',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Icon(Icons.home_work_outlined,
-                            color: Colors.blueAccent.shade700, size: 22),
-                        const SizedBox(width: 6),
-                        Text(type, style: const TextStyle(fontSize: 15)),
-                        const SizedBox(width: 18),
-                        Icon(Icons.swap_horiz_outlined,
-                            color: Colors.deepPurpleAccent, size: 22),
-                        const SizedBox(width: 6),
-                        Text(saleType, style: const TextStyle(fontSize: 15)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 10,
-                      children: [
-                        _infoChip(Icons.square_foot, '$area م²', 'المساحة'),
-                        _infoChip(Icons.meeting_room, '$rooms', 'الغرف'),
-                        _infoChip(
-                            Icons.bathtub_outlined, '$bathrooms', 'الحمامات'),
-                        _infoChip(Icons.signpost_outlined, '$streetWidth م',
-                            'عرض الشارع'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2575FC),
-                            padding: EdgeInsets.symmetric(vertical: 12.w),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'عرض التفاصيل',
-                                style: TextStyle(
-                                    fontSize: 16.sp, color: Colors.white),
-                              ),
-                              SizedBox(width: 2.sp),
-                              Icon(Icons.arrow_circle_left),
-                            ],
-                          )),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+                child: GestureDetector(
+                  onTap: () {}, 
+                  child: FractionallySizedBox(
+                    heightFactor: 0.9,
+                    child: PropertyDetails(
+                                    property: property,
 
-  Widget _infoChip(IconData icon, String value, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: Colors.blueGrey),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(width: 5),
-          Text(
-            '$value ',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ],
       ),
     );
+  },
+);
+
   }
 
   // Helper method to safely convert dynamic values to double
@@ -891,33 +857,28 @@ class _MapPageState extends State<MapPage> {
                               });
 
                               try {
-                                // Call the API
+
                                 final apiResponse = await _sendApiRequest();
 
-                                // Store the API response
                                 setModalState(() {
                                   _apiResponse = apiResponse;
                                   _isProcessing = false;
                                 });
 
-                                // Update map circles with API response
                                 if (apiResponse['points'] != null) {
                                   setState(() {
                                     _districts.clear();
-                                    final points =
-                                        apiResponse['points'] as List<dynamic>;
+                                    List<Map<String, dynamic>> districtsData = [];
+                                    
+                                    final points = apiResponse['points'] as List<dynamic>;
                                     for (var point in points) {
-                                      final coordinates =
-                                          point['coordinates'] as List<dynamic>;
+                                      final coordinates = point['coordinates'] as List<dynamic>;
                                       if (coordinates.isNotEmpty) {
                                         final firstCoord = coordinates[0];
-                                        final lat =
-                                            _toDouble(firstCoord['latitude']);
-                                        final lng =
-                                            _toDouble(firstCoord['longitude']);
-                                        final color =
-                                            point['color'] as String? ??
-                                                'green';
+                                        final lat = _toDouble(firstCoord['latitude']);
+                                        final lng = _toDouble(firstCoord['longitude']);
+                                        final color = point['color'] as String? ?? 'green';
+                                        final name = point['name'] as String? ?? '';
 
                                         Color circleColor;
                                         switch (color.toLowerCase()) {
@@ -936,22 +897,32 @@ class _MapPageState extends State<MapPage> {
 
                                         _districts.add(
                                           Circle(
-                                            circleId: CircleId(
-                                                'ai_${_districts.length}'),
+                                            circleId: CircleId('ai_${_districts.length}'),
                                             center: LatLng(lat, lng),
                                             radius: 1500,
-                                            fillColor:
-                                                circleColor.withOpacity(0.3),
+                                            fillColor: circleColor.withOpacity(0.3),
                                             strokeColor: circleColor,
                                             strokeWidth: 2,
                                           ),
                                         );
+
+                                        // Prepare data for Firebase
+                                        districtsData.add({
+                                          'color': color.toLowerCase() == 'yellow' ? 'orange' : color.toLowerCase(),
+                                          'coordinate': {
+                                            'latitude': lat.toString(),
+                                            'longitude': lng.toString(),
+                                          },
+                                          'name': name,
+                                        });
                                       }
                                     }
+
+                                    // Store to Firebase
+                                    _storeDistrictsToFirebase(districtsData);
                                   });
                                 }
 
-                                // Navigate to results page
                                 _aiPageController.nextPage(
                                   duration: const Duration(milliseconds: 300),
                                   curve: Curves.easeInOut,
@@ -961,7 +932,6 @@ class _MapPageState extends State<MapPage> {
                                   _isProcessing = false;
                                 });
 
-                                // Show error dialog
                                 showDialog(
                                   context: context,
                                   builder: (_) => AlertDialog(
@@ -1040,7 +1010,7 @@ class _MapPageState extends State<MapPage> {
               gradient: LinearGradient(
                 colors: [
                   const Color(0xFF2575FC),
-                  const Color(0xFF6A11CB),
+                  const Color(0xFF1A73E8),
                 ],
               ),
             ),
@@ -1286,66 +1256,17 @@ class _MapPageState extends State<MapPage> {
                           mapType: MapType.normal,
                           circles: _buildColoredCircles(),
                         ),
-                        // Overlay gradient for better visibility
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 60,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  Colors.black.withOpacity(0.3),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.location_on,
-                                      size: 16,
-                                      color: const Color(0xFF2575FC),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                    
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Button to view on full map
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.pop(context); // Close modal
-                      // The colored circles will remain on the main map
+                      Navigator.pop(context);
                     },
                     icon: const Icon(Icons.map, size: 20),
                     label: const Text('عرض على الخريطة الرئيسية'),
@@ -1484,26 +1405,6 @@ class _MapPageState extends State<MapPage> {
     };
   }
 
-  Widget _buildPropertyDetailSmall(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 15,
-          color: Colors.grey[600],
-        ),
-        const SizedBox(width: 3),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[700],
-          ),
-        ),
-      ],
-    );
-  }
-
   Color _getColorFromString(String colorName) {
     switch (colorName.toLowerCase()) {
       case 'green':
@@ -1521,13 +1422,6 @@ class _MapPageState extends State<MapPage> {
       default:
         return Colors.grey;
     }
-  }
-
-  String _formatPrice(int price) {
-    return price.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
   }
 
   Widget _buildLoadingPage() {
@@ -1616,11 +1510,10 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  String _purchaseType = ''; // 'buy' or 'rent'
+  String _purchaseType = ''; 
   double _minBudget = 500000;
   double _maxBudget = 5000000;
 
-// Add this method to update budget range based on property type and purchase type
   void _updateBudgetRange() {
     if (_purchaseType == 'buy') {
       switch (_selectedPropertyType) {
@@ -1660,7 +1553,6 @@ class _MapPageState extends State<MapPage> {
       }
     }
 
-    // Adjust current budget if it's out of new range
     if (_budget < _minBudget) _budget = _minBudget;
     if (_budget > _maxBudget) _budget = _maxBudget;
   }
@@ -2100,65 +1992,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  Widget _buildProcessingView() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: Center(
-              child: SizedBox(
-                width: 100,
-                height: 100,
-                child: CircularProgressIndicator(
-                  strokeWidth: 8,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    const Color(0xFF2575FC),
-                  ),
-                  backgroundColor: Colors.grey[200],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-          const Text(
-            'جاري تحليل البيانات...',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              'نقوم الآن بتحليل تفضيلاتك لإيجاد أفضل الخيارات المناسبة لك',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                height: 1.5,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _purchaseTypeOption(
     String label,
     String value,
@@ -2334,54 +2167,20 @@ class _MapPageState extends State<MapPage> {
     return '$formatted ر.س';
   }
 
-/*
-Future<Map<String, dynamic>> _sendApiRequest() async {
-  try {
-    final response = await _dio.post(
-      'https://example.com/api/analyze', // Replace with your API endpoint
-      data: {
-        'type': _selectedPropertyType,
-        'amount': _budget,
-        'questions_answers': _yesNoAnswers,
-        'points': _selectedAreas.map((circle) {
-          return {
-            'latitude': circle.center.latitude,
-            'longitude': circle.center.longitude,
-          };
-        }).toList(),
-      },
-    );
-    return response.data; // Return the API response
-  } catch (e) {
-    throw Exception('Failed to analyze data: $e');
-  }
-}*/
+
   Future<Map<String, dynamic>> _sendApiRequest() async {
     try {
-      // Get backend URL from environment or use platform-specific default
-      String defaultUrl;
-      if (Platform.isAndroid) {
-        // Android emulator uses 10.0.2.2 to access host machine's localhost
-        defaultUrl = 'http://10.0.2.2:3000';
-      } else if (Platform.isIOS) {
-        // iOS simulator can use localhost
-        defaultUrl = 'http://localhost:3000';
-      } else {
-        // Desktop or other platforms
-        defaultUrl = 'http://localhost:3000';
-      }
+      String defaultUrl = 'http://localhost:3000';
+      
 
       final String baseUrl = dotenv.env['BACKEND_URL'] ?? defaultUrl;
       final String apiUrl = '$baseUrl/api/ai/ask';
 
-      print('🌐 Connecting to backend: $apiUrl');
 
-      // Use the selected property type (already in English: 'villa', 'house', 'apartment')
       String propertyType = _selectedPropertyType.isNotEmpty
           ? _selectedPropertyType
-          : 'apartment'; // default
+          : 'apartment';
 
-      // Prepare request data
       final requestData = {
         'type': propertyType,
         'amount': _budget.toInt(),
@@ -2394,7 +2193,6 @@ Future<Map<String, dynamic>> _sendApiRequest() async {
         }).toList(),
       };
 
-      // Send API request
       final response = await _dio.post(
         apiUrl,
         data: requestData,
@@ -2405,21 +2203,15 @@ Future<Map<String, dynamic>> _sendApiRequest() async {
         ),
       );
 
-      // Return the API response
       return response.data;
     } catch (e) {
-      print('❌ Error calling API: $e');
+      print(' Error calling API: $e');
 
-      // Provide more helpful error messages
       String errorMessage = 'فشل في تحليل البيانات';
       if (e.toString().contains('Connection refused') ||
           e.toString().contains('SocketException')) {
         errorMessage =
             'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 3000';
-        if (Platform.isAndroid) {
-          errorMessage +=
-              '\n\nللأجهزة الافتراضية: تأكد من استخدام http://10.0.2.2:3000';
-        }
       } else if (e.toString().contains('Timeout')) {
         errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى';
       } else {
@@ -2430,21 +2222,27 @@ Future<Map<String, dynamic>> _sendApiRequest() async {
     }
   }
 
-  void _showLoadingScreen(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => LoadingScreen(),
-      ),
-    );
-  }
+Future<void> _storeDistrictsToFirebase(List<Map<String, dynamic>> districtsData) async {
+  try {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      print('No user logged in');
+      return;
+    }
 
-  // This function is no longer used - the map now uses _districts directly
-  // which gets updated from the API response
-  Set<Circle> _buildDistrictsCircles() {
-    // Return empty set - circles are now managed via _districts from API response
-    return _districts;
+    await FirebaseFirestore.instance
+        .collection('preferred_areas')
+        .doc(userId)
+        .set({
+      'districts': districtsData,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)); 
+
+    print('Districts stored/updated successfully');
+  } catch (e) {
+    print('Error storing districts: $e');
   }
+}
 }
 
 class LoadingScreen extends StatelessWidget {
@@ -2538,470 +2336,4 @@ class LoadingScreen extends StatelessWidget {
   }
 }
 
-// Add this method to show the results page
-void _showResultsPage(BuildContext context, Map<String, dynamic> result) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ResultsPage(result: result),
-    ),
-  );
-}
 
-// Create a new ResultsPage widget
-class ResultsPage extends StatelessWidget {
-  final Map<String, dynamic> result;
-
-  const ResultsPage({Key? key, required this.result}) : super(key: key);
-
-  Color _getColorFromString(String colorName) {
-    switch (colorName.toLowerCase()) {
-      case 'green':
-        return Colors.green;
-      case 'yellow':
-        return Colors.amber;
-      case 'red':
-        return Colors.red;
-      case 'blue':
-        return Colors.blue;
-      case 'orange':
-        return Colors.orange;
-      case 'purple':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Extract neighborhoods from points
-    final points = result['points'] as List<dynamic>;
-    final neighborhoods = <Map<String, dynamic>>[];
-
-    for (var point in points) {
-      final name = (point['Name'] as String).split('،')[0];
-      final color = point['color'] as String;
-
-      // Check if neighborhood already exists
-      if (!neighborhoods.any((n) => n['name'] == name)) {
-        neighborhoods.add({
-          'name': name,
-          'color': color,
-        });
-      }
-    }
-
-    // Hardcoded properties list
-    final properties = [
-      {
-        'title': 'فيلا فاخرة مع مسبح خاص',
-        'price': 2500000,
-        'location': 'حي النرجس، شمال الرياض',
-        'bedrooms': 5,
-        'bathrooms': 4,
-        'area': 450,
-        'imageUrl':
-            'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400',
-      },
-      {
-        'title': 'شقة مميزة بإطلالة رائعة',
-        'price': 1200000,
-        'location': 'حي الياسمين، شمال الرياض',
-        'bedrooms': 3,
-        'bathrooms': 2,
-        'area': 180,
-        'imageUrl':
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
-      },
-      {
-        'title': 'فيلا حديثة بتصميم عصري',
-        'price': 3200000,
-        'location': 'حي الصحافة، شمال الرياض',
-        'bedrooms': 6,
-        'bathrooms': 5,
-        'area': 520,
-        'imageUrl':
-            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400',
-      },
-      {
-        'title': 'شقة عائلية واسعة',
-        'price': 950000,
-        'location': 'حي الملقا، شمال الرياض',
-        'bedrooms': 4,
-        'bathrooms': 3,
-        'area': 200,
-        'imageUrl':
-            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400',
-      },
-    ];
-
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        elevation: 0,
-        backgroundColor: Colors.white,
-        title: const Text(
-          'نتائج التحليل',
-          style: TextStyle(
-            color: Color(0xFF2575FC),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF2575FC)),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Success banner
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF2575FC),
-                    const Color(0xFF6A11CB),
-                  ],
-                ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      color: Color(0xFF2575FC),
-                      size: 50,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'تم تحليل البيانات والاستنتاج!',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'وجدنا أفضل العقارات المناسبة لك',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Neighborhoods section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2575FC),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'الأحياء المقترحة',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: neighborhoods.map((neighborhood) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getColorFromString(neighborhood['color'])
-                              .withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: _getColorFromString(neighborhood['color']),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color:
-                                    _getColorFromString(neighborhood['color']),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              neighborhood['name'],
-                              style: TextStyle(
-                                color:
-                                    _getColorFromString(neighborhood['color'])
-                                        .withOpacity(0.8),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Properties section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2575FC),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'العقارات المتوفرة',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: properties.length,
-                    itemBuilder: (context, index) {
-                      final property = properties[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Property image
-                            ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                              child: Image.network(
-                                property['imageUrl'] as String,
-                                height: 180,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    height: 180,
-                                    color: Colors.grey[200],
-                                    child: const Icon(
-                                      Icons.image,
-                                      size: 60,
-                                      color: Colors.grey,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Title
-                                  Text(
-                                    property['title'] as String,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // Location
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.location_on_outlined,
-                                        size: 16,
-                                        color: Colors.grey[600],
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        property['location'] as String,
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-
-                                  // Property details
-                                  Row(
-                                    children: [
-                                      _buildPropertyDetail(
-                                        Icons.bed_outlined,
-                                        '${property['bedrooms']} غرف',
-                                      ),
-                                      const SizedBox(width: 16),
-                                      _buildPropertyDetail(
-                                        Icons.bathroom_outlined,
-                                        '${property['bathrooms']} حمام',
-                                      ),
-                                      const SizedBox(width: 16),
-                                      _buildPropertyDetail(
-                                        Icons.square_foot_outlined,
-                                        '${property['area']} م²',
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Price and button
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'السعر',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          Text(
-                                            '${_formatPrice(property['price'] as int)} ر.س',
-                                            style: const TextStyle(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF2575FC),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          // Navigate to property details
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor:
-                                              const Color(0xFF2575FC),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
-                                          ),
-                                        ),
-                                        child: const Text('عرض التفاصيل'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPropertyDetail(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: Colors.grey[600],
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[700],
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _formatPrice(int price) {
-    return price.toString().replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-  }
-}

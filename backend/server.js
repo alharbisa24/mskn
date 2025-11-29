@@ -24,8 +24,7 @@ app.get('/api/health', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📡 AI endpoint available at http://localhost:${PORT}/api/ai/ask`);
-  console.log(`⚠️  Make sure to set HUGGINGFACE_API_KEY or OPENAI_API_KEY in .env file`);
+  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`AI endpoint available at http://localhost:${PORT}/api/ai/ask`);
 });
 

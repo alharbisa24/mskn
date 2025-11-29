@@ -48,28 +48,8 @@ class _EmailPasswordLoginState extends State<EmailPasswordLogin> {
     if (!mounted) return;
 
     if (profileDoc.exists) {
-      final rank = profileDoc.data()?['rank'] ?? '';
-      String message;
 
-      switch (rank) {
-        case 'seller':
-          message = 'تم تسجيل الدخول بنجاح كبائع';
-          break;
-        case 'buyer':
-          message = 'تم تسجيل الدخول بنجاح كمشتري';
-          break;
-        default:
-          message = 'تم تسجيل الدخول بنجاح';
-      }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ),
-      );
 
       if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(

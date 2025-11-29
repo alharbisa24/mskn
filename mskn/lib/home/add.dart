@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -94,25 +95,39 @@ class _AddPageState extends State<AddPage> {
       setState(() {
         _pickedImages
           ..clear()
-          ..addAll(images.take(8)); // cap to 8 images
+          ..addAll(images.take(8)); 
       });
     }
   }
 
-  Future<List<String>> _uploadImages(String propertyId, String sellerId) async {
-    final storage = FirebaseStorage.instance;
-    final List<String> urls = [];
-    for (int i = 0; i < _pickedImages.length; i++) {
-      final file = File(_pickedImages[i].path);
-      final ref = storage.ref().child(
-          'properties/$sellerId/$propertyId/image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg');
-      final task =
-          await ref.putFile(file, SettableMetadata(contentType: 'image/jpeg'));
-      final url = await task.ref.getDownloadURL();
-      urls.add(url);
-    }
-    return urls;
+Future<List<Map<String, String>>> _uploadImages(String propertyId, String sellerId) async {
+  final storage = FirebaseStorage.instance;
+  final List<Map<String, String>> images = [];
+
+  for (int i = 0; i < _pickedImages.length; i++) {
+    final file = File(_pickedImages[i].path);
+
+    final filename = 'image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+    final path = 'properties/$propertyId/$filename';
+
+    final ref = storage.ref().child(path);
+
+    final task = await ref.putFile(
+      file,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+
+    final url = await task.ref.getDownloadURL();
+
+    images.add({
+      "url": url,
+      "path": path, 
+    });
   }
+
+  return images;
+}
+
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -133,7 +148,6 @@ class _AddPageState extends State<AddPage> {
     try {
       final docRef = FirebaseFirestore.instance.collection('property').doc();
 
-      // Upload images first
       final imageUrls = await _uploadImages(docRef.id, user.uid);
 
       await docRef.set({
@@ -149,8 +163,8 @@ class _AddPageState extends State<AddPage> {
         'streetWidth': _streetWidth.text.trim(),
         'bathrooms': _bathrooms.text.trim(),
         'description': _description.text.trim(),
-        'purchaseType': _purchaseType, // sell | rent
-        'type': _type, // فيلا | شقة | ...
+        'purchaseType': _purchaseType, 
+        'type': _type, 
         'seller_id': user.uid,
         'licence_number': _licenseNumber ?? '',
         'images': imageUrls,
@@ -158,12 +172,18 @@ class _AddPageState extends State<AddPage> {
       });
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم إضافة العقار بنجاح')),
-      );
+      AwesomeDialog(
+        context: context,
+        dialogType: DialogType.success,
+        animType: AnimType.bottomSlide,
+        title: 'نجاح',
+        desc: 'تم إضافة العقار بنجاح',
+        btnOkOnPress: () {},
+      ).show();
       _resetForm();
     } catch (e) {
       _showError('حدث خطأ أثناء إضافة العقار: $e');
+      print(e);
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -544,11 +564,9 @@ class _AddPageState extends State<AddPage> {
                               DropdownMenuItem(
                                   value: 'شقة', child: Text('شقة')),
                               DropdownMenuItem(
-                                  value: 'قصر', child: Text('قصر')),
+                                  value: 'ارض', child: Text('ارض')),
                               DropdownMenuItem(
-                                  value: 'استديو', child: Text('استديو')),
-                              DropdownMenuItem(
-                                  value: 'دوبلكس', child: Text('دوبلكس')),
+                                  value: 'بيت', child: Text('بيت')),
                             ],
                             onChanged: (v) =>
                                 setState(() => _type = v ?? 'فيلا'),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mskn/home/chatbot_page.dart';
 import 'package:mskn/home/dashboard/home.dart';
+import 'package:mskn/home/user_reports.dart';
 import 'package:mskn/seller_properties.dart';
 import 'package:mskn/home/calculator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -102,12 +104,12 @@ class _MorePageState extends State<MorePage> {
                       ),
                     )
                   : Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.h
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 8),
-                          // Header
                           Row(
                             children: [
                               Container(
@@ -120,7 +122,7 @@ class _MorePageState extends State<MorePage> {
                               ),
                               const SizedBox(width: 12),
                               const Text(
-                                'أخرى',
+                                'اخرى',
                                 style: TextStyle(
                                   fontSize: 28,
                                   fontWeight: FontWeight.bold,
@@ -138,72 +140,8 @@ class _MorePageState extends State<MorePage> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Cards
-                          _buildModernCard(
-                            context,
-                            icon: Icons.support_agent_rounded,
-                            title: 'المساعد الذكي',
-                            description:
-                                'احصل على مساعدة فورية من الذكاء الاصطناعي',
-                            gradient: LinearGradient(
-                              colors: [
-                                const Color(0xFF2575FC),
-                                const Color(0xFF6A11CB),
-                              ],
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const ChatbotPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
 
-                          _buildModernCard(
-                            context,
-                            icon: Icons.home_work_outlined,
-                            title: 'عقاراتي',
-                            description: 'إدارة وعرض عقاراتك المعروضة',
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.green.shade400,
-                                Colors.green.shade600,
-                              ],
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const SellerPropertiesPage(),
-                                ),
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          _buildModernCard(
-                            context,
-                            icon: Icons.calculate,
-                            title: 'حاسبة القروض',
-                            description: 'احسب دفعات القرض والفائدة بسهولة',
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.blue.shade400,
-                                Colors.blue.shade700,
-                              ],
-                            ),
-                            onPressed: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const CalculatorPage(),
-                                ),
-                              );
-                            },
-                          ),
-
-                          // Show dashboard only for admins
                           if (_isAdmin) ...[
-                            const SizedBox(height: 16),
                             _buildModernCard(
                               context,
                               icon: Icons.dashboard_rounded,
@@ -224,6 +162,92 @@ class _MorePageState extends State<MorePage> {
                               },
                             ),
                           ],
+                SizedBox(height: 16.h),
+
+                          _buildModernCard(
+                            context,
+                            icon: Icons.support_agent_rounded,
+                            title: 'المساعد الذكي',
+                            description:
+                                'احصل على مساعدة فورية من الذكاء الاصطناعي',
+                            gradient: LinearGradient(
+                              colors: [
+                                const Color(0xFF2575FC),
+                                const Color(0xFF6A11CB),
+                              ],
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ChatbotPage(),
+                                ),
+                              );
+                            },
+                          ),
+                           SizedBox(height: 16.h),
+
+                          _buildModernCard(
+                            context,
+                            icon: Icons.home_work_outlined,
+                            title: 'عقاراتي',
+                            description: 'إدارة وعرض عقاراتك المعروضة',
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.green.shade400,
+                                Colors.green.shade600,
+                              ],
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const SellerPropertiesPage(),
+                                ),
+                              );
+                            },
+                          ),
+                           SizedBox(height: 16.h),
+                          _buildModernCard(
+                            context,
+                            icon: Icons.calculate,
+                            title: 'حاسبة القروض',
+                            description: 'احسب دفعات القرض والفائدة بسهولة',
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blue.shade400,
+                                Colors.blue.shade700,
+                              ],
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const CalculatorPage(),
+                                ),
+                              );
+                            },
+                          ),
+                         SizedBox(height: 16.h),
+
+                          _buildModernCard(
+                            context,
+                            icon: Icons.report,
+                            title: 'بلاغاتي',
+                            description: 'عرض البلاغات التي أرسلتها وحالتها',
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.red.shade400,
+                                Colors.red.shade600,
+                              ],
+                            ),
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const MyReportsPage(),
+                                ),
+                              );
+                            },
+                          ),
+                         SizedBox(height: 16.h),
+
                         ],
                       ),
                     ),

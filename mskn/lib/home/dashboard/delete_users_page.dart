@@ -226,7 +226,6 @@ class _DeleteUsersPageState extends State<DeleteUsersPage> {
                           ],
                         ),
                         child: Row(
-                          textDirection: TextDirection.rtl,
                           children: [
                             // الأيقونة
                             Container(
@@ -248,7 +247,7 @@ class _DeleteUsersPageState extends State<DeleteUsersPage> {
                             // البيانات
                             Expanded(
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     name,

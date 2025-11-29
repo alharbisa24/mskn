@@ -211,36 +211,14 @@ class _UserProfileState extends State<UserProfile> {
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 6,
-                                offset: Offset(0, 2))
-                          ],
-                        ),
-                        child: IconButton(
-                            icon: const Icon(Icons.chevron_right_rounded),
-                            onPressed: () => Navigator.of(context).maybePop()),
-                      ),
-                      const Expanded(child: SizedBox()),
-                      const Text('الملف الشخصي',
+                  child: Text('الملف الشخصي',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
                               color: Colors.black87)),
-                      const Expanded(child: SizedBox()),
-                      const SizedBox(width: 44),
-                    ],
-                  ),
+                    
+                
                 ),
 
                 // البطاقة العلوية

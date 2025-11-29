@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:hugeicons/hugeicons.dart';
 import 'package:mskn/home/favorite.dart';
 import 'package:mskn/home/models/property.dart';
 import 'package:mskn/home/notifications_page.dart';
 import 'package:mskn/home/property_details.dart';
-
 
 
 class FirestoreService {
@@ -46,12 +46,10 @@ class _HomeMainPageState extends State<HomeMainPage> {
   RangeValues priceRange = const RangeValues(0, 50000000);
   bool isFilterActive = false;
 
-  /// 🏷️ Handle Tag Selection
   void _handleTagSelection(String tag) {
     setState(() => selectedTag = tag);
   }
 
-  /// 🔍 Handle Search Input
   void _handleSearch(String query) {
     setState(() => searchQuery = query.trim());
   }
@@ -123,11 +121,10 @@ class _HomeMainPageState extends State<HomeMainPage> {
               ],
             ),
           ),
-          // Custom App Bar / Header - END
           const Divider(
               height: 1,
               thickness: 1,
-              color: Colors.grey), // Small separator line
+              color: Colors.grey), 
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -138,12 +135,10 @@ class _HomeMainPageState extends State<HomeMainPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Search Bar
                       Expanded(
                         child: SearchBar(onSearchChanged: _handleSearch),
                       ),
                       const SizedBox(width: 8),
-                      // فلترة (Filter) Button
                       FilterButton(
                         onPressed: _showPriceFilterDialog,
                         isActive: isFilterActive,
@@ -156,14 +151,13 @@ class _HomeMainPageState extends State<HomeMainPage> {
                   const Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      'عقارات جديدة',
+                      'قائمة العقارات',
                       textAlign: TextAlign.right,
                       style:
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  // 🧱 Property Grid (Now fetches from Firestore)
                   PropertyGrid(
                     selectedTag: selectedTag,
                     searchQuery: searchQuery,
@@ -213,9 +207,14 @@ class _NotificationsIconButtonState extends State<_NotificationsIconButton> {
         final docs = snapshot.data?.docs ?? [];
 
         if (docs.isEmpty) {
-          return IconButton(
-            icon: const Icon(Icons.notifications_none_outlined),
-            onPressed: () => _openNotifications(context),
+          return InkWell(
+            onTap: (){
+              _openNotifications(context);
+            },
+            child: Container(
+              child: HugeIcon(icon: 
+              HugeIcons.strokeRoundedNotification01),
+            ),
           );
         }
 
@@ -278,11 +277,11 @@ class PropertyGrid extends StatelessWidget {
   List<Property> _applyFilters(List<Property> properties) {
     final normalizedQuery = _normalizeArabic(searchQuery);
 
-    final Map<String, List<String>> tagToTypeMap = {
-      'شقق': ['شقة', 'شقق'],
-      'فلل': ['فلة', 'فلل'],
-      'بيوت': ['بيت', 'بيوت'],
-      'أراضي': ['أرض', 'اراضي'],
+    final Map<String, String> tagToTypeMap = {
+      'شقق': 'شقة',
+      'فلل': 'فلة',
+      'بيوت': 'بيت',
+      'أراضي': 'ارض',
     };
 
     return properties.where((property) {
@@ -293,10 +292,11 @@ class PropertyGrid extends StatelessWidget {
       // 1. Tag Filter
       bool matchesTag = selectedTag == 'عرض الكل';
       if (!matchesTag) {
-        final List<String> targetTypes = tagToTypeMap[selectedTag] ?? [];
-
-        matchesTag = targetTypes.any((targetType) =>
-            normalizedType.contains(_normalizeArabic(targetType)));
+        final String? targetType = tagToTypeMap[selectedTag];
+        
+        if (targetType != null) {
+          matchesTag = normalizedType.contains(_normalizeArabic(targetType));
+        }
       }
 
       // 2. Search Filter
@@ -382,11 +382,6 @@ class PropertyGrid extends StatelessWidget {
   }
 }
 
-// -----------------------------------------------------------------------------
-// 5. PRICE FILTER DIALOG (UPDATED: 'إلغاء' button action)
-// -----------------------------------------------------------------------------
-
-/// 💰 Price Filter Dialog
 class PriceFilterDialog extends StatefulWidget {
   final RangeValues initialRange;
   const PriceFilterDialog({super.key, required this.initialRange});
@@ -516,7 +511,6 @@ class SearchBar extends StatelessWidget {
   }
 }
 
-/// 🏷️ Property Type Filter Buttons (Unchanged)
 class PropertyTagsRow extends StatefulWidget {
   final ValueChanged<String> onTagSelected;
   const PropertyTagsRow({super.key, required this.onTagSelected});
@@ -524,8 +518,15 @@ class PropertyTagsRow extends StatefulWidget {
   @override
   State<PropertyTagsRow> createState() => _PropertyTagsRowState();
 }
+
 class _PropertyTagsRowState extends State<PropertyTagsRow> {
-  final List<String> tags = const ['عرض الكل', 'فلل', 'شقق', 'أراضي', 'بيوت'];
+  final List<Map<String, dynamic>> tags = const [
+    {'label': 'عرض الكل', 'icon': Icons.grid_view, 'color': Colors.blue},
+    {'label': 'شقق', 'icon': Icons.apartment, 'color': Colors.orange},
+    {'label': 'فلل', 'icon': Icons.villa, 'color': Colors.green},
+    {'label': 'أراضي', 'icon': Icons.landscape, 'color': Colors.brown},
+    {'label': 'بيوت', 'icon': Icons.home, 'color': Colors.purple},
+  ];
   String selectedTag = 'عرض الكل';
 
   @override
@@ -535,27 +536,19 @@ class _PropertyTagsRowState extends State<PropertyTagsRow> {
       child: Directionality(
         textDirection: TextDirection.rtl,
         child: Row(
-          children: tags.map((tag) { 
-            final bool isSelected = tag == selectedTag;
-            return Padding(
-              padding:EdgeInsets.only(right: 10.0.w),
-              child: ActionChip(
-                label: Text(
-                  tag,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
-                ),
-                backgroundColor: isSelected ? Colors.blue : Colors.grey.shade200,
-                onPressed: () {
-                  setState(() => selectedTag = tag);
-                  widget.onTagSelected(tag);
+          children: tags.map((tag) {
+            final bool isSelected = tag['label'] == selectedTag;
+            return Container(
+              margin: EdgeInsets.only(right: 10.0.w),
+              child: _buildFilterChip(
+                label: tag['label'],
+                icon: tag['icon'],
+                color: tag['color'],
+                isSelected: isSelected,
+                onTap: () {
+                  setState(() => selectedTag = tag['label']);
+                  widget.onTagSelected(tag['label']);
                 },
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
             );
           }).toList(),
@@ -565,6 +558,71 @@ class _PropertyTagsRowState extends State<PropertyTagsRow> {
   }
 }
 
+  Widget _buildFilterChip({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(25),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [color, color.withOpacity(0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? Colors.white : color,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.grey[800],
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
 
 class PropertyCard extends StatefulWidget {
@@ -577,7 +635,6 @@ class PropertyCard extends StatefulWidget {
 
 class _PropertyCardState extends State<PropertyCard> {
 
-  /// ✅ Format price with commas (e.g. 1000000 → 1,000,000)
   String formatPrice(String price) {
     final numeric = price.replaceAll(RegExp(r'[^0-9]'), '');
     if (numeric.isEmpty) return '0';
@@ -596,16 +653,15 @@ class _PropertyCardState extends State<PropertyCard> {
 showModalBottomSheet(
   context: context,
   isScrollControlled: true,
-  backgroundColor: Colors.transparent, // ضروري لخلفية شفافة
+  backgroundColor: Colors.transparent, 
   builder: (context) {
     return GestureDetector(
-      behavior: HitTestBehavior.opaque, // يلتقط الضغط في أي مكان فارغ
-      onTap: () => Navigator.of(context).pop(), // يغلق الـ bottom sheet
+      behavior: HitTestBehavior.opaque, 
+      onTap: () => Navigator.of(context).pop(),
       child: Stack(
         children: [
-          // المحتوى الشفاف بالخلف (النقر عليه يغلق)
           Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.3)), // يعطي ظل خفيف
+            child: Container(color: Colors.black.withOpacity(0.3)), 
           ),
 
           Align(
@@ -621,7 +677,7 @@ showModalBottomSheet(
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(25)),
                 child: GestureDetector(
-                  onTap: () {}, // يمنع الإغلاق عند النقر داخل المحتوى
+                  onTap: () {}, 
                   child: FractionallySizedBox(
                     heightFactor: 0.9,
                     child: PropertyDetails(
@@ -647,12 +703,18 @@ showModalBottomSheet(
         curve: Curves.easeOut,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-      
+               boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Card(
           clipBehavior: Clip.hardEdge,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(25),
               side: BorderSide(
           color: Colors.grey.shade300, 
           width: 1, 
@@ -663,29 +725,77 @@ showModalBottomSheet(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(
-                child: Image.network(
-                  widget.property.image,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: Colors.grey.shade200,
-                      alignment: Alignment.center,
-                      child: const CircularProgressIndicator(),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey.shade300,
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.broken_image,
-                          size: 40, color: Colors.grey),
-                    );
-                  },
-                ),
-              ),
+              Stack(
+  children: [
+    ClipRRect(
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(20),
+      ),
+      child: Image.network(
+        widget.property.images.isNotEmpty ? widget.property.images[0] : widget.property.image,
+        width: double.infinity,
+        height: 140,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 140,
+            color: Colors.grey[200],
+            child: const Icon(
+              Icons.image_not_supported,
+              size: 50,
+              color: Colors.grey,
+            ),
+          );
+        },
+      ),
+    ),
+    Container(
+      height: 140,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.black.withOpacity(0.3),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+    ),
+    Positioned(
+      top: 12,
+      right: 12,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2575FC),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2575FC).withOpacity(0.4),
+              blurRadius: 8,
+            ),
+          ],
+        ),
+        child: Text(
+          widget.property.type,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    ),
+  ],
+),
+
               Padding(
                 padding: EdgeInsets.symmetric(
                   vertical: 10.w,
@@ -699,14 +809,31 @@ showModalBottomSheet(
                       style: const TextStyle(fontWeight: FontWeight.bold),
                       textAlign: TextAlign.right,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.property.location_name,
-                      style: const TextStyle(color: Colors.grey),
-                      textAlign: TextAlign.right,
+                     SizedBox(height: 4.h),
+                       Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 14,
+                          color: Colors.grey[600],
+                        ),
+                       SizedBox(width: 4.h),
+                        Expanded(
+                          child: Text(
+                            widget.property.location_name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    // 💰 Price formatted with commas
+                    
+                     SizedBox(height: 4.h),
+
                     Text(
                       '${formatPrice(widget.property.price)} ر.س',
                       style: const TextStyle(
