@@ -5,12 +5,12 @@ enum PropertyPurchaseType {
   rent,
   other,
 }
+
 enum PropertyType {
   villa,
   apartment,
   land,
 }
-
 
 extension PropertyPurchaseTypeExtension on PropertyPurchaseType {
   String get arabic {
@@ -30,13 +30,13 @@ class Property {
   final String title;
   final String price;
   final String image;
-  final String area; 
-  final String bathrooms; 
-  final String description; 
-  final String licence_number; 
-  final GeoPoint location_coordinate; 
-  final String location_name; 
-  final String propertyAge; 
+  final String area;
+  final String bathrooms;
+  final String description;
+  final String licence_number;
+  final GeoPoint location_coordinate;
+  final String location_name;
+  final String propertyAge;
   final PropertyPurchaseType purchaseType;
   final String rooms;
   final String streetWidth;
@@ -69,11 +69,22 @@ class Property {
   factory Property.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
 
-    final List<dynamic> imagesList =
+    // Normalize images to a List<String> of URLs (backward compatible)
+    final List<dynamic> rawImages =
         data['images'] is List ? data['images'] : [];
-    final String imageUrl = imagesList.isNotEmpty && imagesList[0] is String
-        ? imagesList[0]
-        : 'https://via.placeholder.com/300x400.png?text=No+Image'; 
+    final List<String> imagesList = [];
+    for (final item in rawImages) {
+      if (item is String && item.trim().isNotEmpty) {
+        imagesList.add(item.trim());
+      } else if (item is Map &&
+          item['url'] is String &&
+          (item['url'] as String).trim().isNotEmpty) {
+        imagesList.add((item['url'] as String).trim());
+      }
+    }
+    final String imageUrl = imagesList.isNotEmpty
+        ? imagesList.first
+        : 'https://via.placeholder.com/300x400.png?text=No+Image';
 
     // تحويل purchaseType من string إلى enum
     PropertyPurchaseType typeEnum;
@@ -100,7 +111,7 @@ class Property {
       bathrooms: data['bathrooms'] ?? '',
       description: data['description'] ?? '',
       licence_number: data['licence_number'] ?? '',
-      location_coordinate: data['location_coordinate'] ?? const GeoPoint(0,0),
+      location_coordinate: data['location_coordinate'] ?? const GeoPoint(0, 0),
       propertyAge: data['propertyAge'] ?? '',
       purchaseType: typeEnum,
       rooms: data['rooms'] ?? '',

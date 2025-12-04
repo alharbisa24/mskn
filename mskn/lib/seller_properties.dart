@@ -61,8 +61,10 @@ class SellerPropertiesPage extends StatelessWidget {
                       final String subtitle = _composeSubtitle(data);
 
                       final String priceStr = _stringOrEmpty(data['price']);
-                      final List<String> imageUrls = _extractImageUrls(data['images']);
-                      final String imageUrl = imageUrls.isNotEmpty ? imageUrls.first : '';
+                      final List<String> imageUrls =
+                          _extractImageUrls(data['images']);
+                      final String imageUrl =
+                          imageUrls.isNotEmpty ? imageUrls.first : '';
 
                       return Container(
                         decoration: BoxDecoration(
@@ -82,8 +84,10 @@ class SellerPropertiesPage extends StatelessWidget {
                             dividerColor: Colors.transparent,
                           ),
                           child: ExpansionTile(
-                            tilePadding: const EdgeInsets.symmetric(horizontal: 16.0),
-                            childrenPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                            tilePadding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            childrenPadding:
+                                const EdgeInsets.fromLTRB(16, 8, 16, 16),
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: imageUrl.isEmpty
@@ -103,7 +107,8 @@ class SellerPropertiesPage extends StatelessWidget {
                                       width: 44,
                                       height: 44,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
                                         return Container(
                                           width: 44,
                                           height: 44,
@@ -162,7 +167,8 @@ class SellerPropertiesPage extends StatelessWidget {
                               Align(
                                 alignment: AlignmentDirectional.centerEnd,
                                 child: TextButton.icon(
-                                  onPressed: () => _confirmAndDelete(context, doc),
+                                  onPressed: () =>
+                                      _confirmAndDelete(context, doc),
                                   icon: const Icon(
                                     Icons.delete_outline,
                                     color: Colors.red,
@@ -254,8 +260,6 @@ class SellerPropertiesPage extends StatelessWidget {
     final String locationName = _stringOrEmpty(data['location_name']);
     if (locationName.isNotEmpty) parts.add('الموقع: $locationName');
 
-
-
     return parts.join(' • ');
   }
 
@@ -268,14 +272,20 @@ class SellerPropertiesPage extends StatelessWidget {
     final String propertyAge = _stringOrEmpty(data['propertyAge']);
     final String locationName = _stringOrEmpty(data['location_name']);
 
-
     final List<Widget> items = [];
-    if (type.isNotEmpty) items.add(_detailChip(Icons.category_outlined, 'النوع', type));
-    if (rooms.isNotEmpty) items.add(_detailChip(Icons.meeting_room_outlined, 'الغرف', rooms));
-    if (bathrooms.isNotEmpty) items.add(_detailChip(Icons.bathtub_outlined, 'الحمامات', bathrooms));
-    if (area.isNotEmpty) items.add(_detailChip(Icons.square_foot, 'المساحة', '$area م²'));
-    if (streetWidth.isNotEmpty) items.add(_detailChip(Icons.straighten, 'عرض الشارع', '$streetWidth م'));
-    if (propertyAge.isNotEmpty) items.add(_detailChip(Icons.schedule_outlined, 'عمر العقار', propertyAge));
+    if (type.isNotEmpty)
+      items.add(_detailChip(Icons.category_outlined, 'النوع', type));
+    if (rooms.isNotEmpty)
+      items.add(_detailChip(Icons.meeting_room_outlined, 'الغرف', rooms));
+    if (bathrooms.isNotEmpty)
+      items.add(_detailChip(Icons.bathtub_outlined, 'الحمامات', bathrooms));
+    if (area.isNotEmpty)
+      items.add(_detailChip(Icons.square_foot, 'المساحة', '$area م²'));
+    if (streetWidth.isNotEmpty)
+      items.add(_detailChip(Icons.straighten, 'عرض الشارع', '$streetWidth م'));
+    if (propertyAge.isNotEmpty)
+      items
+          .add(_detailChip(Icons.schedule_outlined, 'عمر العقار', propertyAge));
     if (locationName.isNotEmpty) {
       items.add(
         _detailChip(
@@ -287,7 +297,6 @@ class SellerPropertiesPage extends StatelessWidget {
         ),
       );
     }
-  
 
     if (items.isEmpty) {
       return const SizedBox.shrink();
@@ -303,7 +312,8 @@ class SellerPropertiesPage extends StatelessWidget {
     );
   }
 
-  Widget _detailChip(IconData icon, String label, String value, {double? maxWidth}) {
+  Widget _detailChip(IconData icon, String label, String value,
+      {double? maxWidth}) {
     final child = Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
@@ -349,7 +359,8 @@ class SellerPropertiesPage extends StatelessWidget {
 
     if (maxWidth != null) {
       return ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth + 56), // extra for icon/padding
+        constraints:
+            BoxConstraints(maxWidth: maxWidth + 56), // extra for icon/padding
         child: child,
       );
     }
@@ -378,6 +389,10 @@ class SellerPropertiesPage extends StatelessWidget {
       for (final dynamic v in value) {
         if (v is String && v.trim().isNotEmpty) {
           urls.add(v.trim());
+        } else if (v is Map &&
+            v['url'] is String &&
+            (v['url'] as String).trim().isNotEmpty) {
+          urls.add((v['url'] as String).trim());
         }
       }
     }
@@ -417,6 +432,7 @@ class SellerPropertiesPage extends StatelessWidget {
       ),
     );
   }
+
   String _formatCreatedAt(dynamic value) {
     if (value is Timestamp) {
       final DateTime dt = value.toDate();
@@ -556,5 +572,3 @@ class SellerPropertiesPage extends StatelessWidget {
     }
   }
 }
-
-
