@@ -11,7 +11,6 @@ import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-
 class AddPage extends StatefulWidget {
   const AddPage({super.key});
 
@@ -95,39 +94,35 @@ class _AddPageState extends State<AddPage> {
       setState(() {
         _pickedImages
           ..clear()
-          ..addAll(images.take(8)); 
+          ..addAll(images.take(8));
       });
     }
   }
 
-Future<List<Map<String, String>>> _uploadImages(String propertyId, String sellerId) async {
-  final storage = FirebaseStorage.instance;
-  final List<Map<String, String>> images = [];
+  Future<List<String>> _uploadImages(String propertyId, String sellerId) async {
+    final storage = FirebaseStorage.instance;
+    final List<String> imageUrls = [];
 
-  for (int i = 0; i < _pickedImages.length; i++) {
-    final file = File(_pickedImages[i].path);
+    for (int i = 0; i < _pickedImages.length; i++) {
+      final file = File(_pickedImages[i].path);
 
-    final filename = 'image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-    final path = 'properties/$propertyId/$filename';
+      final filename = 'image_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
+      final path = 'properties/$propertyId/$filename';
 
-    final ref = storage.ref().child(path);
+      final ref = storage.ref().child(path);
 
-    final task = await ref.putFile(
-      file,
-      SettableMetadata(contentType: 'image/jpeg'),
-    );
+      final task = await ref.putFile(
+        file,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
-    final url = await task.ref.getDownloadURL();
+      final url = await task.ref.getDownloadURL();
+      // Store only the URL to keep schema consistent with readers
+      imageUrls.add(url);
+    }
 
-    images.add({
-      "url": url,
-      "path": path, 
-    });
+    return imageUrls;
   }
-
-  return images;
-}
-
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -163,8 +158,8 @@ Future<List<Map<String, String>>> _uploadImages(String propertyId, String seller
         'streetWidth': _streetWidth.text.trim(),
         'bathrooms': _bathrooms.text.trim(),
         'description': _description.text.trim(),
-        'purchaseType': _purchaseType, 
-        'type': _type, 
+        'purchaseType': _purchaseType,
+        'type': _type,
         'seller_id': user.uid,
         'licence_number': _licenseNumber ?? '',
         'images': imageUrls,
