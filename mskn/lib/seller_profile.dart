@@ -163,7 +163,7 @@ class SellerProfile extends StatelessWidget {
                         _Section(title: 'روابط التواصل', children: [
                           _InfoTile(
                             icon: Icons.alternate_email,
-                            label: 'تويتر',
+                            label: 'X',
                             value: _textOrNA(data['x']),
                           ),
                           _InfoTile(

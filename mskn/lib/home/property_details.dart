@@ -2283,17 +2283,17 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
               children: [
                 const SizedBox(width: 8),
                 CircleAvatar(
-                  backgroundColor: const Color(0xFF1DA1F2),
+                  backgroundColor: Colors.black,
                   radius: 18,
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedTwitter,
+                        icon: HugeIcons.strokeRoundedNewTwitter,
                         color: Colors.white,
                         size: 18),
                     onPressed: () {
                       launchUrl(Uri.parse(
-                          'https://twitter.com/${sellerProfile?['x']}'));
+                          'https://x.com/${sellerProfile?['x']}'));
                     },
                   ),
                 ),
