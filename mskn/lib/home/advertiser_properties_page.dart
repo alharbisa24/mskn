@@ -24,7 +24,7 @@ class _AdvertiserPropertiesPageState extends State<AdvertiserPropertiesPage> {
   final Map<String, Map<String, dynamic>> filterOptions = {
     'عرض الكل': {'name': "", 'icon': Icons.apps_rounded, 'color': Colors.blue},
     'شقق': {'name': "شقة", 'icon': Icons.apartment_rounded, 'color': Colors.purple},
-    'فلل': {'name': "فلة" , 'icon': Icons.villa_rounded, 'color': Colors.orange},
+    'فلل': {'name': "فيلا" , 'icon': Icons.villa_rounded, 'color': Colors.orange},
     'أراضي': {'name':"ارض", 'icon': Icons.landscape_rounded, 'color': Colors.green},
     'بيوت': {'name': "بيت", 'icon': Icons.home_rounded, 'color': Colors.red},
   };
