@@ -1967,7 +1967,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
               Icon(Icons.verified_outlined, color: Color(0xFF1A73E8), size: 20),
               SizedBox(width: 8),
               Text(
-                'بيانات الترخيص',
+                'بيانات ترخيص الاعلان',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,

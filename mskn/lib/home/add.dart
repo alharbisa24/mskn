@@ -32,21 +32,18 @@ class _AddPageState extends State<AddPage> {
   final _streetWidth = TextEditingController();
   final _bathrooms = TextEditingController();
   final _description = TextEditingController();
+  final _licenseNumber = TextEditingController();
 
-  // Dropdowns
   String _purchaseType = 'sell'; 
   String _type = 'فيلا';
 
-  // Images
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _pickedImages = [];
 
-  // Location
   double? _lat;
   double? _lng;
 
   String? _rank; 
-  String? _licenseNumber; 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSub;
 
   @override
@@ -67,7 +64,6 @@ class _AddPageState extends State<AddPage> {
       setState(() {
         final data = doc.data();
         _rank = data?['rank'];
-        _licenseNumber = (data?['license_number'] ?? '').toString();
       });
     });
   }
@@ -160,7 +156,7 @@ class _AddPageState extends State<AddPage> {
         'purchaseType': _purchaseType,
         'type': _type,
         'seller_id': user.uid,
-        'licence_number': _licenseNumber ?? '',
+        'licence_number': _licenseNumber.text ?? '',
         'images': imageUrls,
         'created_at': FieldValue.serverTimestamp(),
       });
@@ -569,6 +565,16 @@ class _AddPageState extends State<AddPage> {
                           ),
 
                           const SizedBox(height: 8),
+                          TextFormField(
+                                  controller: _licenseNumber,
+                                  keyboardType: TextInputType.text,
+                                  decoration: const InputDecoration(
+                                      labelText: 'رقم الترخيص للاعلان'),
+                                  validator: (v) =>
+                                      (v == null || v.trim().isEmpty)
+                                          ? 'رقم الترخيص مطلوب'
+                                          : null,
+                                ),
                           TextFormField(
                             controller: _description,
                             maxLines: 4,
