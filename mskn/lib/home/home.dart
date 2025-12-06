@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:lottie/lottie.dart' as Lott;
 import 'package:mskn/home/favorite.dart';
 import 'package:mskn/home/models/property.dart';
 import 'package:mskn/home/notifications_page.dart';
@@ -157,6 +158,7 @@ class _HomeMainPageState extends State<HomeMainPage> {
                           TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
+
                   const SizedBox(height: 10),
                   PropertyGrid(
                     selectedTag: selectedTag,
@@ -211,10 +213,9 @@ class _NotificationsIconButtonState extends State<_NotificationsIconButton> {
             onTap: (){
               _openNotifications(context);
             },
-            child: Container(
-              child: HugeIcon(icon: 
-              HugeIcons.strokeRoundedNotification01),
-            ),
+            child:  HugeIcon(icon: 
+              HugeIcons.strokeRoundedNotification01, size: 25,),
+            
           );
         }
 
@@ -224,18 +225,19 @@ class _NotificationsIconButtonState extends State<_NotificationsIconButton> {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            IconButton(
-              icon: Icon(
-                showAlert
-                    ? Icons.notifications
-                    : Icons.notifications_none_outlined,
-              ),
-              onPressed: () => _openNotifications(context),
+            InkWell(
+             onTap: () => _openNotifications(context),
+
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedNotification01,
+                size: 25,
+                ),
             ),
+      
             if (showAlert)
               Positioned(
-                right: 4,
-                top: 6,
+                right: 2,
+                top: -7,
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
@@ -279,7 +281,7 @@ class PropertyGrid extends StatelessWidget {
 
     final Map<String, String> tagToTypeMap = {
       'شقق': 'شقة',
-      'فلل': 'فلة',
+      'فلل': 'فيلا',
       'بيوت': 'بيت',
       'أراضي': 'ارض',
     };

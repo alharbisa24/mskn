@@ -210,20 +210,20 @@ class SellerPropertiesPage extends StatelessWidget {
   }
 
   Widget _buildEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.all(24.0),
+    return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Icon(Icons.home_outlined, size: 64, color: Colors.grey),
-          SizedBox(height: 12),
-          Text(
-            'لا توجد عقارات مسجلة حتى الآن',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
-          ),
-        ],
-      ),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.home_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 12),
+            Text(
+              'لا توجد عقارات مسجلة حتى الآن',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+            ),
+          ],
+        ),
+      
     );
   }
 

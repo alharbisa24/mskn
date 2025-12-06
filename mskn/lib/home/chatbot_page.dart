@@ -81,7 +81,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
   void _scrollToBottom() {
-    // Keep the latest exchange in view after sending or receiving.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       _scrollController.animateTo(

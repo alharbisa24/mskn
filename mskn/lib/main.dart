@@ -24,7 +24,6 @@ void main() async {
     await ScreenUtil.ensureScreenSize();
 
 
-    await dotenv.load(fileName: ".env");
   
   runApp(const MyApp());
 }

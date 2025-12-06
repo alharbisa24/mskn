@@ -34,8 +34,8 @@ class _AddPageState extends State<AddPage> {
   final _description = TextEditingController();
 
   // Dropdowns
-  String _purchaseType = 'sell'; // sell | rent
-  String _type = 'فيلا'; // فيلا | شقة | قصر | استديو | دوبلكس
+  String _purchaseType = 'sell'; 
+  String _type = 'فيلا';
 
   // Images
   final ImagePicker _picker = ImagePicker();
@@ -45,9 +45,8 @@ class _AddPageState extends State<AddPage> {
   double? _lat;
   double? _lng;
 
-  // Auth + Role
-  String? _rank; // seller / buyer
-  String? _licenseNumber; // from seller profile
+  String? _rank; 
+  String? _licenseNumber; 
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSub;
 
   @override

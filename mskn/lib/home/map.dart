@@ -14,6 +14,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:mskn/home/models/property.dart';
 import 'package:mskn/home/property_details.dart';
+import 'package:lottie/lottie.dart' as Lott;
 
 final Dio _dio = Dio();
 
@@ -638,7 +639,6 @@ class _MapPageState extends State<MapPage> {
     throw Exception('Unsupported coordinate type: ${v.runtimeType}');
   }
 
-  // AI Assistant variables and methods (keeping your original code)
   final PageController _aiPageController = PageController();
   int _currentAiPage = 0;
   bool _isProcessing = false;
@@ -658,14 +658,13 @@ class _MapPageState extends State<MapPage> {
   List<Map<String, String>> _yesNoAnswers = [];
 
   void _showAiAssistant() {
-    // Reset values
     _currentAiPage = 0;
     _selectedPropertyType = '';
     _budget = 1000000;
     _yesNoAnswers = List.generate(
       _aiQuestions.length,
       (index) =>
-          {'question': _aiQuestions[index], 'answer': 'لا'}, // Default to "لا"
+          {'question': _aiQuestions[index], 'answer': 'لا'},
     );
     _selectedAreas.clear();
     _selectedAreaCount = 0;
@@ -728,7 +727,6 @@ class _MapPageState extends State<MapPage> {
                 ),
               ),
 
-              // Progress bar (only show for first 3 pages)
               if (_currentAiPage < 3)
                 Padding(
                   padding:
@@ -759,7 +757,6 @@ class _MapPageState extends State<MapPage> {
                 ),
               ),
 
-              // Navigation buttons (hide on loading and results pages)
               if (_currentAiPage < 3 && !_isProcessing)
                 Padding(
                   padding: const EdgeInsets.all(20),
@@ -906,7 +903,6 @@ class _MapPageState extends State<MapPage> {
                                           ),
                                         );
 
-                                        // Prepare data for Firebase
                                         districtsData.add({
                                           'color': color.toLowerCase() == 'yellow' ? 'orange' : color.toLowerCase(),
                                           'coordinate': {
@@ -918,7 +914,6 @@ class _MapPageState extends State<MapPage> {
                                       }
                                     }
 
-                                    // Store to Firebase
                                     _storeDistrictsToFirebase(districtsData);
                                   });
                                 }
@@ -969,7 +964,6 @@ class _MapPageState extends State<MapPage> {
   }
 
   Widget _buildResultsPage(StateSetter setModalState) {
-    // Extract neighborhoods from API response
     final List<Map<String, dynamic>> neighborhoods = [];
 
     if (_apiResponse != null && _apiResponse!['points'] != null) {
@@ -979,7 +973,6 @@ class _MapPageState extends State<MapPage> {
             (point['Name'] as String? ?? 'Unknown').split('،')[0].trim();
         final color = point['color'] as String? ?? 'green';
 
-        // Check if neighborhood already exists
         if (!neighborhoods.any((n) => n['name'] == name)) {
           neighborhoods.add({
             'name': name,
@@ -989,14 +982,7 @@ class _MapPageState extends State<MapPage> {
       }
     }
 
-    // Fallback to default if no API response
-    if (neighborhoods.isEmpty) {
-      neighborhoods.addAll([
-        {'name': 'حي النرجس', 'color': 'green'},
-        {'name': 'حي الياسمين', 'color': 'yellow'},
-        {'name': 'حي الصحافة', 'color': 'red'},
-      ]);
-    }
+
 
     return SingleChildScrollView(
       child: Column(
@@ -1052,7 +1038,6 @@ class _MapPageState extends State<MapPage> {
 
           const SizedBox(height: 20),
 
-          // Neighborhoods section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -1130,7 +1115,6 @@ class _MapPageState extends State<MapPage> {
 
           const SizedBox(height: 24),
 
-          // Color Legend section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -1429,65 +1413,8 @@ class _MapPageState extends State<MapPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Animated loader
-          SizedBox(
-            width: 150,
-            height: 150,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Outer rotating circle
-                TweenAnimationBuilder(
-                  duration: const Duration(seconds: 5),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  builder: (context, value, child) {
-                    return Transform.rotate(
-                      angle: value * 6.28,
-                      child: Container(
-                        width: 150,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF2575FC).withOpacity(0.2),
-                            width: 4,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // Inner rotating circle
-                TweenAnimationBuilder(
-                  duration: const Duration(seconds: 5),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  builder: (context, value, child) {
-                    return Transform.rotate(
-                      angle: -value * 6.28,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFF2575FC).withOpacity(0.4),
-                            width: 3,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                // Central icon
-                const Icon(
-                  Icons.location_searching,
-                  size: 40,
-                  color: Color(0xFF2575FC),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
+         Lott.Lottie.asset('assets/ai_loading.json', width: 300, height: 300),
+
           const Text(
             'جاري تحليل البيانات...',
             style: TextStyle(
@@ -1497,10 +1424,11 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
           const SizedBox(height: 10),
+
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'يرجى عدم إغلاق الصفحة لمدة ٥ ثواني',
+              'يرجى عدم إغلاق الصفحة',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),

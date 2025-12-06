@@ -55,6 +55,7 @@ dependencies:
   share_plus: ^12.0.0
   google_generative_ai: ^0.4.7
   intl: ^0.20.2
+  lottie: ^3.3.2
 
   
 dev_dependencies:
@@ -83,6 +84,7 @@ flutter:
   assets:
   - .env
   - images/logo.png
+  - assets/
   
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg

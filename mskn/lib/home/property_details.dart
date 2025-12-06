@@ -14,7 +14,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class PropertyDetails extends StatefulWidget {
-  Property property;
+  final Property property;
   PropertyDetails({super.key, required this.property});
 
   @override
@@ -293,7 +293,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         desc: 'تمت ازاله العقار من المفضلة بنجاح',
         btnOkText: 'حسناً',
         btnOkOnPress: () {},
-        btnOkColor: Colors.red,
+        btnOkColor: Colors.blueAccent,
       ).show();
                         } else {
                           await favRef.set({
@@ -304,11 +304,11 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         context: context,
         dialogType: DialogType.success,
         animType: AnimType.scale,
-        title: 'تمت الاضفة',
+        title: 'تمت الاضافة',
         desc: 'تمت اضافة العقار لقائمة المفضلة بنجاح',
         btnOkText: 'حسناً',
         btnOkOnPress: () {},
-        btnOkColor: Colors.red,
+        btnOkColor: Colors.blueAccent,
       ).show();
                         }
                       },
@@ -944,6 +944,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                     ],
                   ),
                 ),
+                
                 GestureDetector(
                   onTap: (){
                          Navigator.of(context).push(
@@ -969,6 +970,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                     ],
                   ),
                 )
+                
               ],
             ),
   
@@ -1026,7 +1028,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                 ],
               ),
 
-              const SizedBox(height: 16),
+            SizedBox(height: 16.h),
 
               Row(
                 children: [
