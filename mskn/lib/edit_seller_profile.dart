@@ -19,7 +19,7 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
   late final TextEditingController _licenseNumber;
   late final TextEditingController _licenceCreated;
   late final TextEditingController _licenceExpired;
-  late final TextEditingController _twitter;
+  late final TextEditingController _x;
   late final TextEditingController _instagram;
   late final TextEditingController _snapchat;
 
@@ -37,7 +37,7 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
         TextEditingController(text: (d['licence_created'] ?? '').toString());
     _licenceExpired =
         TextEditingController(text: (d['licence_expired'] ?? '').toString());
-    _twitter = TextEditingController(text: (d['twitter'] ?? '').toString());
+    _x = TextEditingController(text: (d['x'] ?? '').toString());
     _instagram = TextEditingController(text: (d['instagram'] ?? '').toString());
     _snapchat = TextEditingController(text: (d['snapchat'] ?? '').toString());
   }
@@ -49,7 +49,7 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
     _licenseNumber.dispose();
     _licenceCreated.dispose();
     _licenceExpired.dispose();
-    _twitter.dispose();
+    _x.dispose();
     _instagram.dispose();
     _snapchat.dispose();
     super.dispose();
@@ -86,7 +86,7 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
         'license_number': _licenseNumber.text.trim(),
         'licence_created': _licenceCreated.text.trim(),
         'licence_expired': _licenceExpired.text.trim(),
-        'twitter': _twitter.text.trim(),
+        'x': _x.text.trim(),
         'instagram': _instagram.text.trim(),
         'snapchat': _snapchat.text.trim(),
         'updated_at': FieldValue.serverTimestamp(),
@@ -201,9 +201,9 @@ class _EditSellerProfileScreenState extends State<EditSellerProfileScreen> {
                 const Text('روابط التواصل',
                     style:
                         TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                _label('تويتر'),
+                _label('X'),
                 TextFormField(
-                    controller: _twitter, decoration: _dec('@username')),
+                    controller: _x, decoration: _dec('@username')),
                 _label('انستقرام'),
                 TextFormField(
                     controller: _instagram, decoration: _dec('username')),
