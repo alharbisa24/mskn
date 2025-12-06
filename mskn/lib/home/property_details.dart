@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -12,6 +15,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
 
 class PropertyDetails extends StatefulWidget {
   final Property property;
@@ -34,6 +39,9 @@ class _PropertyDetailsState extends State<PropertyDetails> {
   bool _isDeleting = false;
 
   late LatLng position;
+
+  bool _isAnalyzing = false;
+  Map<String, dynamic>? _analysisResult;
 
   @override
   void initState() {
@@ -228,6 +236,666 @@ class _PropertyDetailsState extends State<PropertyDetails> {
     }
   }
 
+  Future<void> _analyzeProperty() async {
+    setState(() {
+      _isAnalyzing = true;
+    });
+
+    try {
+      final apiKey = dotenv.get('GEMINI_API_KEY');
+      final model = GenerativeModel(
+        model: 'gemini-2.5-flash',
+        apiKey: apiKey,
+      );
+
+      // Calculate distances to major landmarks
+      final landmarks = {
+        'جامعة الملك سعود': LatLng(24.7241, 46.6215),
+        'جامعة الامام محمد بن سعود': LatLng(24.8169, 46.7106),
+        'KAFD': LatLng(24.7697, 46.6405),
+        'المدينة الرقمية': LatLng(24.8263, 46.7228),
+      };
+
+      final distances = <String, double>{};
+      for (final entry in landmarks.entries) {
+        final distance = _calculateDistance(
+          position.latitude,
+          position.longitude,
+          entry.value.latitude,
+          entry.value.longitude,
+        );
+        distances[entry.key] = distance;
+      }
+
+      final prompt = '''
+قم بتحليل هذا العقار بالتفصيل:
+
+معلومات العقار:
+- العنوان: ${widget.property.title}
+- النوع: ${widget.property.type}
+- طريقة الشراء: ${widget.property.purchaseType.arabic}
+- السعر: ${widget.property.price} ريال
+- الموقع: ${widget.property.location_name}
+- عدد الغرف: ${widget.property.rooms}
+- عدد الحمامات: ${widget.property.bathrooms}
+- المساحة: ${widget.property.area} متر مربع
+- عرض الشارع: ${widget.property.streetWidth} متر
+- عمر العقار: ${widget.property.propertyAge} سنة
+- الوصف: ${widget.property.description}
+
+المسافات إلى المعالم الرئيسية:
+${distances.entries.map((e) => '- ${e.key}: ${e.value.toStringAsFixed(1)} كم').join('\n')}
+
+يرجى تقديم التحليل بصيغة JSON فقط بالشكل التالي:
+{
+  "strengths": ["نقطة قوة 1", "نقطة قوة 2", "نقطة قوة 3"],
+  "weaknesses": ["نقطة ضعف 1", "نقطة ضعف 2"],
+  "target_audience": "الفئة المستهدفة",
+  "price_assessment": {
+    "verdict": "عادل/مرتفع/منخفض",
+    "explanation": "شرح مختصر"
+  },
+  "fraud_risk": {
+    "percentage": 15,
+    "reason": "سبب التقييم"
+  },
+  "recommendation": "توصية نهائية"
+}
+
+ملاحظة: استخدم اللغة العربية فقط وكن دقيقاً في التحليل.
+''';
+
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+      print(response);
+      
+      if (response.text == null) {
+        throw Exception('No response from AI');
+      }
+
+      // Extract JSON from response
+      String jsonStr = response.text!;
+      jsonStr = jsonStr.replaceAll('```json', '').replaceAll('```', '').trim();
+      
+      final analysis = json.decode(jsonStr);
+      analysis['distances'] = distances;
+
+      setState(() {
+        _analysisResult = analysis;
+        _isAnalyzing = false;
+      });
+
+      _showAnalysisBottomSheet();
+    } catch (e) {
+      setState(() => _isAnalyzing = false);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل في تحليل العقار: $e')),
+      );
+    }
+  }
+
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadius = 6371; // km
+    final dLat = _toRadians(lat2 - lat1);
+    final dLon = _toRadians(lon2 - lon1);
+    
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_toRadians(lat1)) * cos(_toRadians(lat2)) *
+        sin(dLon / 2) * sin(dLon / 2);
+    
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadius * c;
+  }
+
+  double _toRadians(double degree) {
+    return degree * pi / 180;
+  }
+
+  void _showAnalysisBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.analytics_outlined,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'تحليل العقار بالذكاء الاصطناعي',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(height: 1),
+
+              // Content
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    // Strengths
+                    _buildAnalysisSection(
+                      title: 'نقاط القوة',
+                      icon: Icons.check_circle_outline,
+                      color: Colors.green,
+                      items: List<String>.from(_analysisResult?['strengths'] ?? []),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Weaknesses
+                    _buildAnalysisSection(
+                      title: 'نقاط الضعف',
+                      icon: Icons.warning_amber_rounded,
+                      color: Colors.orange,
+                      items: List<String>.from(_analysisResult?['weaknesses'] ?? []),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Target Audience
+                    _buildInfoCard(
+                      title: 'الفئة المستهدفة',
+                      icon: Icons.people_outline,
+                      color: Colors.purple,
+                      content: _analysisResult?['target_audience'] ?? '',
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Price Assessment
+                    _buildPriceAssessmentCard(),
+
+                    const SizedBox(height: 20),
+
+                    // Fraud Risk
+                    _buildFraudRiskCard(),
+
+                    const SizedBox(height: 20),
+
+                    // Distances
+                    _buildDistancesCard(),
+
+                    const SizedBox(height: 20),
+
+                    // Recommendation
+                    _buildRecommendationCard(),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnalysisSection({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<String> items,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    item,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required String content,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            content,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceAssessmentCard() {
+    final assessment = _analysisResult?['price_assessment'];
+    final verdict = assessment?['verdict'] ?? '';
+    
+    Color color;
+    IconData icon;
+    
+    if (verdict.contains('عادل')) {
+      color = Colors.green;
+      icon = Icons.check_circle;
+    } else if (verdict.contains('مرتفع')) {
+      color = Colors.red;
+      icon = Icons.arrow_upward;
+    } else {
+      color = Colors.blue;
+      icon = Icons.arrow_downward;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.attach_money, color: color, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'تقييم السعر',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon, color: color, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      verdict,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            assessment?['explanation'] ?? '',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFraudRiskCard() {
+    final fraudRisk = _analysisResult?['fraud_risk'];
+    final percentage = fraudRisk?['percentage'] ?? 0;
+    
+    Color color;
+    String riskLevel;
+    
+    if (percentage < 20) {
+      color = Colors.green;
+      riskLevel = 'منخفضة';
+    } else if (percentage < 50) {
+      color = Colors.orange;
+      riskLevel = 'متوسطة';
+    } else {
+      color = Colors.red;
+      riskLevel = 'مرتفعة';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.shield_outlined, color: color, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'تقييم الاحتيال',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'نسبة الخطورة: $riskLevel',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: percentage / 100,
+                        backgroundColor: Colors.grey[200],
+                        color: color,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$percentage%',
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            fraudRisk?['reason'] ?? '',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDistancesCard() {
+    final distances = _analysisResult?['distances'] as Map<String, dynamic>?;
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.place_outlined, color: Colors.blue, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'المسافات للمعالم الرئيسية',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...distances!.entries.map((entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.location_city,
+                        color: Colors.blue,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      entry.key,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${entry.value.toStringAsFixed(1)} كم',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.recommend_outlined, color: Colors.white, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'التوصية النهائية',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _analysisResult?['recommendation'] ?? '',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.5,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -338,7 +1006,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
 للمزيد من التفاصيل، حمل تطبيق مسكن!
 ''';
-
+ 
                         final RenderBox box =
                             context.findRenderObject() as RenderBox;
 
@@ -572,13 +1240,87 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
 
                         SizedBox(height: 24.h),
 
+
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF2575FC).withOpacity(0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _isAnalyzing ? null : _analyzeProperty,
+                                borderRadius: BorderRadius.circular(16),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  child: _isAnalyzing
+                                      ? const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                         
+                                            Text(
+                                              'جاري التحليل...',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                     SizedBox(width: 12),
+                                               SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'تحليل العقار بالذكاء الاصطناعي',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                      SizedBox(width: 12),
+                                  Icon(Icons.analytics, color: Colors.white, size: 24),
+
+                                          ],
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    SizedBox(height: 24.h),
                         _buildLicenseDetails(),
 
-                        SizedBox(height: 24.h),
+                          SizedBox(height: 24.h),
 
                         _buildSellerDetails(),
 
-                        SizedBox(height: 100.h),
+
+                        SizedBox(
+                          height: 50.h,
+                        )
                       ],
                     ),
                   ),
