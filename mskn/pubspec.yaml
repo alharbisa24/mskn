@@ -57,6 +57,7 @@ dependencies:
   intl: ^0.20.2
   lottie: ^3.3.2
   flutter_launcher_icons: ^0.14.4
+  geocoding: ^3.0.0
 
   
 dev_dependencies:
