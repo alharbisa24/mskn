@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:google_places_flutter/model/prediction.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geocoding/geocoding.dart';
 
 class AddPage extends StatefulWidget {
   const AddPage({super.key});
@@ -34,7 +35,7 @@ class _AddPageState extends State<AddPage> {
   final _description = TextEditingController();
   final _licenseNumber = TextEditingController();
 
-  String _purchaseType = 'sell'; 
+  String _purchaseType = 'sell';
   String _type = 'فيلا';
 
   final ImagePicker _picker = ImagePicker();
@@ -43,7 +44,7 @@ class _AddPageState extends State<AddPage> {
   double? _lat;
   double? _lng;
 
-  String? _rank; 
+  String? _rank;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _profileSub;
 
   @override
@@ -119,6 +120,51 @@ class _AddPageState extends State<AddPage> {
     return imageUrls;
   }
 
+  Future<void> _handlePickedLocation(double lat, double lng) async {
+    if (!mounted) return;
+    setState(() {
+      _lat = lat;
+      _lng = lng;
+    });
+    await _updateAddressFromCoordinates(lat, lng);
+  }
+
+  Future<void> _updateAddressFromCoordinates(double lat, double lng) async {
+    try {
+      final placemarks = await placemarkFromCoordinates(lat, lng);
+
+      if (!mounted) return;
+
+      String? formatted;
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        final parts = <String>[
+          if ((place.subLocality ?? '').trim().isNotEmpty)
+            place.subLocality!.trim(),
+          if ((place.locality ?? '').trim().isNotEmpty) place.locality!.trim(),
+          if ((place.administrativeArea ?? '').trim().isNotEmpty)
+            place.administrativeArea!.trim(),
+          if ((place.country ?? '').trim().isNotEmpty) place.country!.trim(),
+        ];
+        if (parts.isNotEmpty) {
+          formatted = parts.join('، ');
+        }
+      }
+
+      setState(() {
+        _locationName.text =
+            formatted ?? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      print('فشل في جلب العنوان: $e');
+      setState(() {
+        _locationName.text =
+            '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}';
+      });
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final user = FirebaseAuth.instance.currentUser;
@@ -132,6 +178,10 @@ class _AddPageState extends State<AddPage> {
     }
     if (_pickedImages.isEmpty) {
       _showError('الرجاء اختيار صور للعقار');
+      return;
+    }
+    if (_locationName.text.trim().isEmpty) {
+      _showError('الرجاء تحديد موقع العقار');
       return;
     }
     setState(() => _submitting = true);
@@ -190,6 +240,7 @@ class _AddPageState extends State<AddPage> {
     _streetWidth.clear();
     _bathrooms.clear();
     _description.clear();
+    _licenseNumber.clear();
     _pickedImages.clear();
     _lat = null;
     _lng = null;
@@ -372,10 +423,8 @@ class _AddPageState extends State<AddPage> {
                                         ),
                                       );
                                       if (res != null) {
-                                        setState(() {
-                                          _lat = res.lat;
-                                          _lng = res.lng;
-                                        });
+                                        await _handlePickedLocation(
+                                            res.lat, res.lng);
                                       }
                                     },
                                     icon: const Icon(Icons.place),
@@ -407,10 +456,8 @@ class _AddPageState extends State<AddPage> {
                                         ),
                                       );
                                       if (res != null) {
-                                        setState(() {
-                                          _lat = res.lat;
-                                          _lng = res.lng;
-                                        });
+                                        await _handlePickedLocation(
+                                            res.lat, res.lng);
                                       }
                                     },
                                     icon: const Icon(Icons.place),
@@ -566,15 +613,14 @@ class _AddPageState extends State<AddPage> {
 
                           const SizedBox(height: 8),
                           TextFormField(
-                                  controller: _licenseNumber,
-                                  keyboardType: TextInputType.text,
-                                  decoration: const InputDecoration(
-                                      labelText: 'رقم الترخيص للاعلان'),
-                                  validator: (v) =>
-                                      (v == null || v.trim().isEmpty)
-                                          ? 'رقم الترخيص مطلوب'
-                                          : null,
-                                ),
+                            controller: _licenseNumber,
+                            keyboardType: TextInputType.text,
+                            decoration: const InputDecoration(
+                                labelText: 'رقم الترخيص للاعلان'),
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'رقم الترخيص مطلوب'
+                                : null,
+                          ),
                           TextFormField(
                             controller: _description,
                             maxLines: 4,
