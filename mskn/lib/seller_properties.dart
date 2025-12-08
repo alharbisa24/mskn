@@ -12,6 +12,7 @@ class SellerPropertiesPage extends StatelessWidget {
     final User? user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('عقاراتي'),
       ),

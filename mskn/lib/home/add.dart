@@ -269,6 +269,7 @@ class _AddPageState extends State<AddPage> {
     final googleApiKey = dotenv.get("GOOGLE_MAP_API");
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(title: const Text('إضافة عقار')),
       body: SafeArea(
         child: (_rank == null)
@@ -707,12 +708,12 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             onMapCreated: (c) {},
             onTap: _onTap,
             markers: _markers,
-            myLocationEnabled: false,
-            zoomControlsEnabled: true,
-            mapType: MapType.normal,
+              myLocationEnabled: true,
+              zoomControlsEnabled: false,
+              mapType: MapType.normal,
           ),
           Positioned(
-            bottom: 16,
+            top: 16,
             left: 16,
             right: 16,
             child: ElevatedButton.icon(

@@ -10,7 +10,6 @@ class CalculatorPage extends StatefulWidget {
 }
 
 class _CalculatorPageState extends State<CalculatorPage> {
-  // Controllers للـ TextFields
   final TextEditingController monthlyIncomeController =
       TextEditingController(text: '1000');
   final TextEditingController propertyPriceController =
@@ -32,7 +31,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
     super.dispose();
   }
 
-  // حساب المعدل بناءً على المدة
   double calculateInterestRate(double years) {
     if (years <= 5) return 3.5;
     if (years <= 10) return 3.8;
@@ -42,37 +40,32 @@ class _CalculatorPageState extends State<CalculatorPage> {
     return 5.0;
   }
 
-  // حساب قيمة القرض (أصل القرض فقط)
   double get loanAmount {
     double price = double.tryParse(propertyPriceController.text) ?? 0;
     double downPayment = double.tryParse(downPaymentController.text) ?? 0;
     return price * (100 - downPayment) / 100;
   }
 
-  // حساب إجمالي المبلغ المدفوع (أصل القرض + الفوائد)
   double get totalAmountPaid {
     double years = double.tryParse(loanDurationController.text) ?? 1;
     double months = years * 12;
     return monthlyPayment * months;
   }
 
-  // حساب إجمالي الفوائد المدفوعة
   double get totalInterest {
     return totalAmountPaid - loanAmount;
   }
 
-  // حساب الدفعة الأولى
   double get downPayment {
     double price = double.tryParse(propertyPriceController.text) ?? 0;
     double percentage = double.tryParse(downPaymentController.text) ?? 0;
     return price * percentage / 100;
   }
 
-  // حساب الدفعة الشهرية
   double get monthlyPayment {
     double years = double.tryParse(loanDurationController.text) ?? 1;
     double interestRate = double.tryParse(interestRateController.text) ?? 0;
-    double rate = interestRate / 100 / 12; // معدل شهري
+    double rate = interestRate / 100 / 12; 
     double months = years * 12;
 
     if (rate == 0 || loanAmount == 0) return loanAmount / months;
@@ -82,7 +75,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
         (pow(1 + rate, months) - 1);
   }
 
-  // حساب الحد الأقصى للقسط (55% من الدخل)
   double get maxMonthlyPayment {
     double income = double.tryParse(monthlyIncomeController.text) ?? 0;
     return income * 0.65;
@@ -95,7 +87,6 @@ class _CalculatorPageState extends State<CalculatorPage> {
     return (monthlyPayment / income) * 100;
   }
 
-  // التحقق إذا كان القسط يتجاوز الحد المسموح
   bool get isPaymentExceeded {
     return monthlyPayment > maxMonthlyPayment;
   }
@@ -110,7 +101,7 @@ class _CalculatorPageState extends State<CalculatorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'حاسبة القرض العقاري',

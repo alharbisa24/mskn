@@ -7,7 +7,7 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           'الإشعارات',

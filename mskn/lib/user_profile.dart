@@ -108,7 +108,6 @@ class _UserProfileState extends State<UserProfile> {
     );
 
     if (result == true) {
-      final uid = _auth.currentUser!.uid;
       final newData = {
         'name': nameCtrl.text.trim(),
         'email': emailCtrl.text.trim(),
@@ -204,7 +203,7 @@ class _UserProfileState extends State<UserProfile> {
         final phone = (data['phone'] as String?) ?? 'بدون رقم';
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF8F9FB),
+          backgroundColor:Colors.white,
           body: SafeArea(
             child: Column(
               children: [
@@ -221,7 +220,6 @@ class _UserProfileState extends State<UserProfile> {
                 
                 ),
 
-                // البطاقة العلوية
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Card(
@@ -309,7 +307,6 @@ class _UserProfileState extends State<UserProfile> {
 
                 const SizedBox(height: 20),
 
-                // زر تعديل البيانات
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: SizedBox(

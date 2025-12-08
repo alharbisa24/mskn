@@ -114,7 +114,6 @@ class _PropertyDetailsState extends State<PropertyDetails> {
   Future<void> _confirmDeleteProperty() async {
     if (_isDeleting) return;
 
-    
     await AwesomeDialog(
       context: context,
       dialogType: DialogType.warning,
@@ -125,19 +124,19 @@ class _PropertyDetailsState extends State<PropertyDetails> {
       btnOkText: 'حذف العقار',
       btnCancelOnPress: () {},
       btnOkOnPress: () async {
-      await _deleteProperty();
+        await _deleteProperty();
       },
       btnOkColor: Colors.red,
       btnCancelColor: Colors.grey
     ).show();
+}
 
-  }
-  Future<void> _deleteProperty() async {
+Future<void> _deleteProperty() async {
     if (_isDeleting) return;
 
     setState(() => _isDeleting = true);
 
-    final navigator = Navigator.of(context);
+    // عرض اللودر
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -145,29 +144,27 @@ class _PropertyDetailsState extends State<PropertyDetails> {
     );
 
     try {
-
-         if (widget.property.images.isNotEmpty) {
-      for (String imageUrl in widget.property.images) {
-        try {
-          final ref = FirebaseStorage.instance.refFromURL(imageUrl);
-          await ref.delete();
-        } catch (e) {
-          print('Error deleting image: $e');
+      // حذف الصور من Storage
+      if (widget.property.images.isNotEmpty) {
+        for (String imageUrl in widget.property.images) {
+          try {
+            final ref = FirebaseStorage.instance.refFromURL(imageUrl);
+            await ref.delete();
+          } catch (e) {
+            print('Error deleting image: $e');
+          }
         }
       }
-    }
 
       final firestore = FirebaseFirestore.instance;
       final propertyId = widget.property.uid;
-
       final propertyRef = firestore.collection('property').doc(propertyId);
 
       final favoritesRoots = await firestore.collection('favorites').get();
       final favoriteDocs = <DocumentReference<Map<String, dynamic>>>[];
 
       for (final userFavorites in favoritesRoots.docs) {
-        final candidate =
-            userFavorites.reference.collection('items').doc(propertyId);
+        final candidate = userFavorites.reference.collection('items').doc(propertyId);
         final candidateSnap = await candidate.get();
         if (candidateSnap.exists) {
           favoriteDocs.add(candidate);
@@ -195,13 +192,13 @@ class _PropertyDetailsState extends State<PropertyDetails> {
 
       await batch.commit();
 
-      if (navigator.canPop()) {
-        navigator.pop();
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); 
       }
 
       if (!mounted) return;
 
-   AwesomeDialog(
+      await AwesomeDialog(
         context: context,
         dialogType: DialogType.success,
         animType: AnimType.scale,
@@ -209,20 +206,19 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         desc: 'تم حذف العقار بنجاح.',
         btnOkText: 'حسناً',
         btnOkOnPress: () {
-          if (navigator.canPop()) {
-            navigator.pop();
-          }
+          Navigator.of(context).pop();
         },
         btnOkColor: Colors.green,
-            ).show();
+      ).show();
+
     } catch (error) {
-      if (navigator.canPop()) {
-        navigator.pop();
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); 
       }
 
       if (!mounted) return;
 
-      AwesomeDialog(
+      await AwesomeDialog(
         context: context,
         dialogType: DialogType.error,
         animType: AnimType.scale,
@@ -232,6 +228,7 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         btnOkOnPress: () {},
         btnOkColor: Colors.red,
       ).show();
+      
     } finally {
       if (mounted) {
         setState(() => _isDeleting = false);
@@ -251,12 +248,11 @@ class _PropertyDetailsState extends State<PropertyDetails> {
         apiKey: apiKey,
       );
 
-      // Calculate distances to major landmarks
       final landmarks = {
         'جامعة الملك سعود': LatLng(24.7241, 46.6215),
         'جامعة الامام محمد بن سعود': LatLng(24.8169, 46.7106),
         'KAFD': LatLng(24.7697, 46.6405),
-        'المدينة الرقمية': LatLng(24.8263, 46.7228),
+        'المدينة الرقمية': LatLng(24.741130, 46.635813),
       };
 
       final distances = <String, double>{};
@@ -316,7 +312,6 @@ ${distances.entries.map((e) => '- ${e.key}: ${e.value.toStringAsFixed(1)} كم')
         throw Exception('No response from AI');
       }
 
-      // Extract JSON from response
       String jsonStr = response.text!;
       jsonStr = jsonStr.replaceAll('```json', '').replaceAll('```', '').trim();
       
@@ -470,6 +465,17 @@ ${distances.entries.map((e) => '- ${e.key}: ${e.value.toStringAsFixed(1)} كم')
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showFullScreenImage(int initialIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FullScreenImageGallery(
+          images: List<String>.from(widget.property.images),
+          initialIndex: initialIndex,
         ),
       ),
     );
@@ -1411,14 +1417,18 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                           autoPlay: false,
                         ),
                         items: widget.property.images.map<Widget>((imageUrl) {
+                          final index = widget.property.images.indexOf(imageUrl);
                           return Builder(
                             builder: (BuildContext context) {
-                              return Container(
-                                width: MediaQuery.of(context).size.width,
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(imageUrl),
-                                    fit: BoxFit.cover,
+                              return GestureDetector(
+                                onTap: () => _showFullScreenImage(index),
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width,
+                                  decoration: BoxDecoration(
+                                    image: DecorationImage(
+                                      image: NetworkImage(imageUrl),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                               );
@@ -1456,7 +1466,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                                 color: Colors.white),
                           ),
                           onPressed: () {
-                            _carouselController.previousPage();
+                            _carouselController.nextPage();
                           },
                         ),
                       ),
@@ -1471,7 +1481,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                                 color: Colors.white),
                           ),
                           onPressed: () {
-                            _carouselController.nextPage();
+                            _carouselController.previousPage();
                           },
                         ),
                       ),
@@ -1491,8 +1501,8 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                                 padding: const EdgeInsets.only(right: 8.0),
                                 child: Text(
                                   widget.property.title,
-                                  style: const TextStyle(
-                                    fontSize: 24,
+                                  style: TextStyle(
+                                    fontSize: 20.sp,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.black87,
                                     height: 1.3,
@@ -2675,6 +2685,219 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
         );
       }
     }
+  }
+}
+
+class FullScreenImageGallery extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const FullScreenImageGallery({
+    super.key,
+    required this.images,
+    required this.initialIndex,
+  });
+
+  @override
+  State<FullScreenImageGallery> createState() => _FullScreenImageGalleryState();
+}
+
+class _FullScreenImageGalleryState extends State<FullScreenImageGallery> {
+  late PageController _pageController;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Image PageView
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            itemCount: widget.images.length,
+            itemBuilder: (context, index) {
+              return InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.network(
+                    widget.images[index],
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.white,
+                          size: 64,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Top Bar
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Close Button
+                      CircleAvatar(
+                        backgroundColor: Colors.white.withOpacity(0.3),
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
+
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_currentIndex + 1} / ${widget.images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+
+                   
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.7),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                child: SizedBox(
+                  height: 100,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    itemCount: widget.images.length,
+                    itemBuilder: (context, index) {
+                      final isSelected = index == _currentIndex;
+                      return GestureDetector(
+                        onTap: () {
+                          _pageController.animateToPage(
+                            index,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              width: 3,
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              widget.images[index],
+                              width: 70,
+                              height: 70,
+                              fit: BoxFit.cover,
+                              opacity: isSelected
+                                  ? const AlwaysStoppedAnimation(1.0)
+                                  : const AlwaysStoppedAnimation(0.5),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+         
+        ],
+      ),
+    );
   }
 }
 
