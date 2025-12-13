@@ -62,11 +62,15 @@ class NotificationsPage extends StatelessWidget {
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(
+                        color: Color(0xFFE0E0E0),
+                        width: 1,
+                      ),
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 10,
                       ),
                       leading: Container(
                         width: 40,

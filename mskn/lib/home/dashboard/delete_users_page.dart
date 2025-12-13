@@ -382,30 +382,40 @@ class _DeleteUsersPageState extends State<DeleteUsersPage> {
       await batch.commit();
 
       if (mounted) {
-        Navigator.pop(context); // إخفاء Loading
+        Navigator.pop(context); 
+        
         setState(() {
           selectedUserIds.clear();
           isSelectionMode = false;
         });
 
-        AwesomeDialog(
-          context: context,
-          dialogType: DialogType.success,
-          title: 'تم بنجاح',
-          desc: 'تم حذف العملاء المحددين بنجاح.',
-          btnOkOnPress: () {},
-        ).show();
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (mounted) {
+          AwesomeDialog(
+            context: context,
+            dialogType: DialogType.success,
+            title: 'تم بنجاح',
+            desc: 'تم حذف العملاء المحددين بنجاح.',
+            btnOkOnPress: () {},
+          ).show();
+        }
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
-        AwesomeDialog(
-          context: context,
-          dialogType: DialogType.error,
-          title: 'خطأ',
-          desc: 'حدث خطأ غير متوقع: $e',
-          btnOkOnPress: () {},
-        ).show();
+        
+        await Future.delayed(const Duration(milliseconds: 300));
+        
+        if (mounted) {
+          AwesomeDialog(
+            context: context,
+            dialogType: DialogType.error,
+            title: 'خطأ',
+            desc: 'حدث خطأ غير متوقع: $e',
+            btnOkOnPress: () {},
+          ).show();
+        }
       }
     }
   }

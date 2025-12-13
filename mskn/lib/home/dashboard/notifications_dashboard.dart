@@ -71,7 +71,7 @@ class _NotificationsDashboardWidgetState
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
         title: const Text(
-          'نظام الإشعارات',
+          'نظام الاشعارات',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,

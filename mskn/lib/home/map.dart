@@ -1026,7 +1026,7 @@ class _MapPageState extends State<MapPage> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'تم تخصيص الخريطة بناءً على تفضيلاتك',
+                  'تم تخصيص الخريطة بناء على تفضيلاتك',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white70,
@@ -1055,7 +1055,7 @@ class _MapPageState extends State<MapPage> {
                     ),
                     const SizedBox(width: 10),
                     const Text(
-                      'الأحياء المقترحة',
+                      'الاحياء المقترحة',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -1132,7 +1132,7 @@ class _MapPageState extends State<MapPage> {
                     ),
                     const SizedBox(width: 10),
                     const Text(
-                      'دليل الألوان',
+                      'دليل الالوان',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
@@ -1185,7 +1185,6 @@ class _MapPageState extends State<MapPage> {
 
           const SizedBox(height: 24),
 
-          // Map section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -1413,7 +1412,7 @@ class _MapPageState extends State<MapPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-         Lott.Lottie.asset('assets/ai_loading.json', width: 300, height: 300),
+         Lott.Lottie.asset('assets/ai_loading.json', width: 400, height: 300),
 
           const Text(
             'جاري تحليل البيانات...',
@@ -1510,7 +1509,7 @@ class _MapPageState extends State<MapPage> {
           const SizedBox(height: 24),
           Center(
             child: Text(
-              'دعنا نساعدك في العثور على العقار المناسب',
+              'دعنا نساعدك في العثور على الاحياء المناسبة',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 18,
@@ -1523,7 +1522,7 @@ class _MapPageState extends State<MapPage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
               child: Text(
-                'أخبرنا عن احتياجاتك وسنستخدم الذكاء الاصطناعي لاقتراح أفضل العقارات لك',
+                'أخبرنا عن احتياجاتك وسنستخدم الذكاء الاصطناعي لاقتراح الاحياء المناسبة لك',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -2233,7 +2232,6 @@ class LoadingScreen extends StatelessWidget {
                       );
                     },
                   ),
-                  // Central icon
                   const Icon(
                     Icons.location_searching,
                     size: 40,

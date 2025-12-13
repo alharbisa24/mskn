@@ -9,6 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:intl/intl.dart';
 import 'package:mskn/home/advertiser_properties_page.dart';
 import 'package:mskn/home/models/property.dart';
 import 'package:share_plus/share_plus.dart';
@@ -31,6 +32,37 @@ class _PropertyDetailsState extends State<PropertyDetails> {
   final CarouselSliderController _carouselController =
       CarouselSliderController();
 
+
+  String _getTimeAgo(Timestamp timestamp) {
+    final DateTime dateTime = timestamp.toDate();
+    final DateTime now = DateTime.now();
+    final Duration difference = now.difference(dateTime);
+
+    if (difference.inSeconds < 60) {
+      return 'منذ ${difference.inSeconds} ثانية';
+    } else if (difference.inMinutes < 60) {
+      return 'منذ ${difference.inMinutes} دقيقة';
+    } else if (difference.inHours < 24) {
+      return 'منذ ${difference.inHours} ساعة';
+    } else if (difference.inDays < 7) {
+      return 'منذ ${difference.inDays} يوم';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return 'منذ $weeks ${weeks == 1 ? 'أسبوع' : 'أسابيع'}';
+    } else if (difference.inDays < 365) {
+      final months = (difference.inDays / 30).floor();
+      return 'منذ $months ${months == 1 ? 'شهر' : months == 2 ? 'شهرين' : 'أشهر'}';
+    } else {
+      final years = (difference.inDays / 365).floor();
+      return 'منذ $years ${years == 1 ? 'سنة' : years == 2 ? 'سنتين' : 'سنوات'}';
+    }
+  }
+
+  String _getFormattedDate(Timestamp timestamp) {
+    final DateTime dateTime = timestamp.toDate();
+    final DateFormat formatter = DateFormat('dd MMMM yyyy، hh:mm a', 'ar');
+    return formatter.format(dateTime);
+  }
   bool isFavorite = false;
 
   Map<String, dynamic>? sellerProfile;
@@ -136,7 +168,6 @@ Future<void> _deleteProperty() async {
 
     setState(() => _isDeleting = true);
 
-    // عرض اللودر
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -144,7 +175,6 @@ Future<void> _deleteProperty() async {
     );
 
     try {
-      // حذف الصور من Storage
       if (widget.property.images.isNotEmpty) {
         for (String imageUrl in widget.property.images) {
           try {
@@ -192,8 +222,8 @@ Future<void> _deleteProperty() async {
 
       await batch.commit();
 
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop(); 
+      if (mounted) {
+        Navigator.of(context).pop();
       }
 
       if (!mounted) return;
@@ -210,10 +240,9 @@ Future<void> _deleteProperty() async {
         },
         btnOkColor: Colors.green,
       ).show();
-
     } catch (error) {
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop(); 
+      if (mounted) {
+        Navigator.of(context).pop();
       }
 
       if (!mounted) return;
@@ -348,10 +377,10 @@ ${distances.entries.map((e) => '- ${e.key}: ${e.value.toStringAsFixed(1)} كم')
 المطلوب بصيغة JSON فقط:
 {
   "services_proximity": {
-    "schools": "قريب/متوسط/بعيد + وصف مختصر",
-    "hospitals": "قريب/متوسط/بعيد + وصف مختصر",
-    "shopping": "قريب/متوسط/بعيد + وصف مختصر",
-    "transport": "قريب/متوسط/بعيد + وصف مختصر"
+    "schools": "قليل/متواجد/متواجد بكثرة + وصف مختصر",
+    "hospitals": "قليل/متواجد/متواجد بكثرة + وصف مختصر",
+    "shopping": "قليل/متواجد/متواجد بكثرة + وصف مختصر",
+    "transport": "قليل/متواجد/متواجد بكثرة + وصف مختصر"
   },
   "average_price_per_sqm": {
     "value": 0000,
@@ -1499,16 +1528,33 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                             Expanded(
                               child: Padding(
                                 padding: const EdgeInsets.only(right: 8.0),
-                                child: Text(
-                                  widget.property.title,
-                                  style: TextStyle(
-                                    fontSize: 20.sp,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black87,
-                                    height: 1.3,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      widget.property.title,
+                                      style: TextStyle(
+                                        fontSize: 20.sp,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black87,
+                                        height: 1.3,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    SizedBox(
+                                      height: 5.h,
+                                    ),
+                                                      
+           Text(
+                _getTimeAgo(Timestamp.fromDate(widget.property.created_at ?? DateTime.now())),
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                                  ],
                                 ),
                               ),
                             ),
@@ -1548,6 +1594,7 @@ if (_isAdmin || widget.property.seller_id == FirebaseAuth.instance.currentUser?.
                             ),
                           ],
                         ),
+       
 
                         SizedBox(height: 12.h),
 

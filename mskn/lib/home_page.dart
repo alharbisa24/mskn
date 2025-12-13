@@ -173,7 +173,7 @@ class _HomePageState extends State<HomePage> {
                   child: HugeIcon(icon: 
                   HugeIcons.strokeRoundedAdd01, color: Colors.white,),
                 ),
-                label: 'إضافة',
+                label: 'النشر',
               ),
               BottomNavigationBarItem(
                 icon: HugeIcon(icon: 

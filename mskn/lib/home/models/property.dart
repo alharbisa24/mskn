@@ -6,11 +6,6 @@ enum PropertyPurchaseType {
   other,
 }
 
-enum PropertyType {
-  villa,
-  apartment,
-  land,
-}
 
 extension PropertyPurchaseTypeExtension on PropertyPurchaseType {
   String get arabic {
@@ -43,6 +38,7 @@ class Property {
   final String type;
   final List images;
   final String? seller_id;
+  final DateTime? created_at;
 
   Property({
     required this.uid,
@@ -62,6 +58,7 @@ class Property {
     this.streetWidth = '',
     this.images = const [],
     this.seller_id,
+    this.created_at,
   });
 
   double get priceValue => double.tryParse(price.replaceAll(',', '')) ?? 0.0;
@@ -69,7 +66,6 @@ class Property {
   factory Property.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
 
-    // Normalize images to a List<String> of URLs (backward compatible)
     final List<dynamic> rawImages =
         data['images'] is List ? data['images'] : [];
     final List<String> imagesList = [];
@@ -86,7 +82,6 @@ class Property {
         ? imagesList.first
         : 'https://via.placeholder.com/300x400.png?text=No+Image';
 
-    // تحويل purchaseType من string إلى enum
     PropertyPurchaseType typeEnum;
     switch ((data['purchaseType'] ?? '').toString().toLowerCase()) {
       case 'sell':
@@ -119,6 +114,7 @@ class Property {
       images: imagesList,
       image: imageUrl,
       seller_id: data['seller_id'],
+      created_at: (data['created_at'] as Timestamp?)?.toDate(),
     );
   }
 }

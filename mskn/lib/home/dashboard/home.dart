@@ -157,12 +157,11 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Bottom three cards
                         Row(
                           children: [
                             Expanded(
                               child: _buildCompactStatCard(
-                                title: 'المسوقين',
+                                title: 'البائعين',
                                 value: _totalMarketers.toString(),
                                 icon: Icons.business_center_rounded,
                                 color: Colors.green,
@@ -216,12 +215,11 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- (1) Management Card: قائمة المستخدمين ---
                     _buildManagementCard(
                       context,
                       icon: Icons.people_alt_outlined,
                       title: 'قائمة المستخدمين',
-                      description: 'عرض وإدارة جميع المستخدمين',
+                      description: 'عرض وادارة جميع المستخدمين',
                       gradient: LinearGradient(
                         colors: [
                           const Color(0xFF2575FC),
@@ -237,12 +235,11 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- (2) Management Card: قائمة المسوقين (تم التعديل) ---
                     _buildManagementCard(
                       context,
                       icon: Icons.business_center_rounded,
-                      title: 'قائمة المسوقين',
-                      description: 'إدارة حسابات المسوقين والوكلاء',
+                      title: 'قائمة البائعين',
+                      description: 'ادارة حسابات البائعين والمسوقين',
                       gradient: LinearGradient(
                         colors: [
                           Colors.green.shade400,
@@ -250,7 +247,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                         ],
                       ),
                       onPressed: () {
-                        // الانتقال لصفحة المسوقين
                         Navigator.of(context).push(
                           MaterialPageRoute(
                               builder: (context) => const DeleteSellersPage()),
@@ -259,7 +255,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- (3) Management Card: نظام الاشعارات ---
                     _buildManagementCard(
                       context,
                       icon: Icons.notifications_active_outlined,
@@ -282,7 +277,6 @@ class _DashboardHomeWidgetState extends State<DashboardHomeWidget> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- (4) Management Card: بلاغات المستخدمين ---
                     _buildManagementCard(
                       context,
                       icon: Icons.flag_outlined,
