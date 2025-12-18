@@ -210,10 +210,10 @@ class _AdvertiserPropertiesPageState extends State<AdvertiserPropertiesPage> {
                 padding: const EdgeInsets.all(16),
                 sliver: SliverGrid(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
+              crossAxisCount: 2,
+            crossAxisSpacing: 10.0,
+            mainAxisSpacing: 10.0,
+            childAspectRatio: 0.70,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
@@ -386,24 +386,22 @@ class _AdvertiserPropertiesPageState extends State<AdvertiserPropertiesPage> {
                     },
                   ),
                 ),
-                // Gradient overlay
-                Container(
-                  height: 140,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.3),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
-                // Type badge
+         Container(
+      height: 140,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+        gradient: LinearGradient(
+          colors: [
+            Colors.transparent,
+            Colors.black.withOpacity(0.3),
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+    ),
                 Positioned(
                   top: 12,
                   right: 12,
